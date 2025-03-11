@@ -847,19 +847,18 @@
   }
 </script>
 
-<div
-  class="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200"
->
-  <div class="p-3 max-md:p-4 space-y-8 max-md:space-y-6">
-    <!-- Header -->
-    <div
-      class="flex max-md:flex-col max-md:space-y-2 justify-between items-center"
+<div class="min-h-screen bg-muted">
+  <!-- New sidebar-based layout -->
+  <div class="flex flex-col md:flex-row">
+    <!-- Side Panel for Key Metrics -->
+    <aside
+      class="w-full md:w-80 lg:w-96 bg-white p-5 md:h-screen md:shadow-md md:z-10 md:fixed md:overflow-y-auto"
     >
-      <div class="flex gap-3 items-center">
-        <div class="bg-primary/10 p-3 rounded-lg">
+      <div class="flex items-center gap-3 mb-8 pb-4 border-b">
+        <div class="bg-secondary/10 p-2 rounded-lg">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="w-6 h-6 text-primary"
+            class="w-5 h-5 text-secondary"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -870,34 +869,20 @@
             />
           </svg>
         </div>
-        <h1
-          class="text-3xl max-md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark"
-        >
-          Dashboard Overview
-        </h1>
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">JOMS Dashboard</h1>
+          <p class="text-xs text-gray-500">RichRed Clotheshoppe</p>
+        </div>
       </div>
-      <div class="text-sm max-md:text-xs text-gray-500">
-        Last updated: {new Date().toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        })}
-      </div>
-    </div>
 
-    <!-- Add this button after the dashboard header, before the Key Metrics Cards section -->
-    <div class="flex justify-end mb-4">
+      <!-- Export Button -->
       <button
         on:click={generateExcelReport}
-        class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-md"
+        class="w-full mb-6 flex items-center justify-center gap-2 px-4 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
+          class="h-4 w-4"
           viewBox="0 0 20 20"
           fill="currentColor"
         >
@@ -907,313 +892,315 @@
             clip-rule="evenodd"
           />
         </svg>
-        Generate Report
+        Generate Full Report
       </button>
-    </div>
 
-    <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-4 max-md:grid-cols-1 gap-6 max-md:gap-3">
-      {#each metrics as metric}
-        <div
-          class="group relative flex cursor-pointer"
-          on:click={() => handleCardClick(metric.type)}
-          on:keydown={(e) => e.key === "Enter" && handleCardClick(metric.type)}
-          role="button"
-          tabindex="0"
-        >
-          <div
-            class="absolute inset-0 bg-gradient-to-r {metric.color} rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity"
-          ></div>
-          <div
-            class="relative bg-white p-6 rounded-2xl shadow transition-transform transform hover:scale-105 border border-gray-200 w-full flex flex-col"
+      <div class="space-y-6 pb-4">
+        <!-- Core Metrics -->
+        <div>
+          <h2
+            class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3"
           >
-            <h3 class="text-gray-600 font-medium">{metric.title}</h3>
-            <p
-              class="text-2xl font-bold mt-2 bg-clip-text text-transparent bg-gradient-to-r {metric.color}"
-            >
-              {metric.value}
-            </p>
-            <p class="text-xs text-gray-500 mt-2">{metric.description}</p>
-          </div>
-        </div>
-      {/each}
-      {#each timeMetrics as metric}
-        <div
-          class="group relative flex cursor-pointer"
-          on:click={() => handleCardClick(metric.type)}
-          on:keydown={(e) => e.key === "Enter" && handleCardClick(metric.type)}
-          role="button"
-          tabindex="0"
-        >
-          <div
-            class="absolute inset-0 bg-gradient-to-r {metric.color} rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity"
-          ></div>
-          <div
-            class="relative bg-white p-6 rounded-2xl shadow transition-transform transform hover:scale-105 border border-gray-200 w-full flex flex-col"
-          >
-            <h3 class="text-gray-600 font-medium">{metric.title}</h3>
-            <p
-              class="text-2xl font-bold mt-2 bg-clip-text text-transparent bg-gradient-to-r {metric.color}"
-            >
-              {metric.value}
-            </p>
-            <p class="text-xs text-gray-500 mt-2">{metric.description}</p>
-          </div>
-        </div>
-      {/each}
-    </div>
-
-    <!-- Recent Orders Table -->
-    <div class="bg-white/90 p-6 max-md:p-3 rounded-2xl shadow-lg border">
-      <h3 class="text-lg font-bold mb-4">5 Recent Orders</h3>
-      <div class="overflow-x-auto max-md:-mx-3">
-        <!-- Added negative margin for mobile -->
-        <table class="min-w-full max-md:text-[11px]">
-          <!-- Reduced font size further -->
-          <thead class="bg-gray-50">
-            <tr>
-              <th
-                class="px-4 max-md:px-2 py-2 text-left text-xs font-medium text-gray-500"
-                >Student</th
+            Core Metrics
+          </h2>
+          <div class="space-y-3">
+            {#each metrics as metric}
+              <div
+                class="bg-gray-50 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                on:click={() => handleCardClick(metric.type)}
+                on:keydown={(e) =>
+                  e.key === "Enter" && handleCardClick(metric.type)}
+                role="button"
+                tabindex="0"
               >
-              <th
-                class="px-4 max-md:px-2 py-2 text-left text-xs font-medium text-gray-500 max-md:hidden"
-                >Ordered At</th
-              >
-              <!-- Hide on mobile -->
-              <th
-                class="px-4 max-md:px-2 py-2 text-left text-xs font-medium text-gray-500"
-                >Due Date</th
-              >
-              <th
-                class="px-4 max-md:px-2 py-2 text-left text-xs font-medium text-gray-500"
-                >Status</th
-              >
-              <th
-                class="px-4 max-md:px-2 py-2 text-left text-xs font-medium text-gray-500"
-                >Amount</th
-              >
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            {#each data.orderMetrics.recentOrders as order}
-              <tr>
-                <td class="px-4 max-md:px-2 py-2 text-sm max-md:text-[11px]"
-                  >{order.student}</td
-                >
-                <td
-                  class="px-4 max-md:px-2 py-2 text-sm max-md:text-[11px] max-md:hidden"
-                  >{new Date(order.orderedAt).toLocaleDateString()}</td
-                >
-                <!-- Hide on mobile -->
-                <td class="px-4 max-md:px-2 py-2 text-sm max-md:text-[11px]"
-                  >{new Date(order.dueDate).toLocaleDateString()}</td
-                >
-                <td class="px-4 max-md:px-2 py-2 text-sm max-md:text-[11px]">
-                  <span
-                    class="px-2 py-1 rounded-full text-xs max-md:text-[10px] max-md:px-1.5 max-md:py-0.5
-                              {order.status === 'completed'
-                      ? 'bg-green-100 text-green-800'
-                      : order.status === 'in progress'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-yellow-100 text-yellow-800'}"
-                  >
-                    {order.status}
-                  </span>
-                </td>
-                <td class="px-4 max-md:px-2 py-2 text-sm max-md:text-[11px]"
-                  >{formatCurrency(order.amount)}</td
-                >
-              </tr>
+                <div>
+                  <p class="text-xs text-gray-500">{metric.title}</p>
+                  <p class="text-lg font-bold text-gray-800">{metric.value}</p>
+                </div>
+                <div
+                  class="w-2 h-8 rounded-full bg-gradient-to-b {metric.color}"
+                ></div>
+              </div>
             {/each}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </div>
+        </div>
 
-    <!-- Time-based Charts Section -->
-    <div class="space-y-6 max-md:space-y-4">
-      <div
-        class="flex max-md:flex-col max-md:space-y-2 justify-between items-center"
-      >
-        <h2 class="text-2xl max-md:text-xl font-bold text-gray-800">
-          Time-Based Analytics
-        </h2>
-        <!-- Keep only the time frame selector in the header -->
-        <select
-          bind:value={selectedTimeFrame}
-          class="px-4 py-2 max-md:w-full border rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
-        >
-          {#each timeFrames as frame}
-            <option value={frame}>
-              {frame.charAt(0).toUpperCase() + frame.slice(1)}
-            </option>
-          {/each}
-        </select>
-      </div>
-
-      <div class="grid grid-cols-12 gap-6 max-md:gap-4">
-        <!-- Revenue Trend card with internal toggle -->
-        <div
-          class="col-span-12 lg:col-span-6 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <div
-            class="flex max-md:flex-col max-md:space-y-2 justify-between items-center mb-2"
+        <!-- Time-based Metrics -->
+        <div>
+          <h2
+            class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3"
           >
-            <h3 class="text-xl max-md:text-lg font-bold">Revenue Trend</h3>
-            <select
-              bind:value={selectedRevenueType}
-              class="px-3 py-1 text-sm max-md:w-full border rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary"
+            Time Metrics
+          </h2>
+          <div class="space-y-3">
+            {#each timeMetrics as metric}
+              <div
+                class="bg-gray-50 rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                on:click={() => handleCardClick(metric.type)}
+                on:keydown={(e) =>
+                  e.key === "Enter" && handleCardClick(metric.type)}
+                role="button"
+                tabindex="0"
+              >
+                <div>
+                  <p class="text-xs text-gray-500">{metric.title}</p>
+                  <p class="text-lg font-bold text-gray-800">{metric.value}</p>
+                </div>
+                <div
+                  class="w-2 h-8 rounded-full bg-gradient-to-b {metric.color}"
+                ></div>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Last Updated Info -->
+        <div class="text-xs text-center text-gray-500 pt-4 border-t">
+          Last updated: {new Date().toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="w-full md:ml-80 lg:ml-96 p-4 md:p-6">
+      <!-- Time-based Analytics Controls -->
+      <div
+        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6"
+      >
+        <h2 class="text-lg font-semibold text-gray-700 mb-2 sm:mb-0">
+          Time Analytics
+        </h2>
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <label for="timeframe" class="text-xs text-gray-500"
+            >View data by:</label
+          >
+          <div class="flex bg-gray-100 rounded-lg p-1">
+            {#each timeFrames as frame}
+              <button
+                class="px-3 py-1 text-sm rounded-md {selectedTimeFrame === frame
+                  ? 'bg-white shadow-sm text-secondary'
+                  : 'text-gray-600'}"
+                on:click={() => (selectedTimeFrame = frame)}
+              >
+                {frame.charAt(0).toUpperCase() + frame.slice(1)}
+              </button>
+            {/each}
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
+        <div class="flex justify-between items-center px-6 pt-5 pb-4">
+          <h3 class="font-medium text-gray-800">Recent Orders</h3>
+          <span
+            class="bg-secondary/10 text-secondary text-xs px-3 py-1 rounded-full"
+            >5 most recent</span
+          >
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead
+              class="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
-              <option value="order">By Order Date</option>
-              <option value="payment">By Payment Date</option>
-            </select>
-          </div>
-          <p class="text-xs text-gray-500 mb-4">
-            Track revenue patterns over time based on order or payment dates
-          </p>
-          <div class="h-80 max-md:h-60">
-            <canvas bind:this={revenueChartEl}></canvas>
-          </div>
-        </div>
-
-        <div
-          class="col-span-12 lg:col-span-6 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-xl max-md:text-lg font-bold mb-2">
-            Average Order Value
-          </h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Average value of order over time
-          </p>
-          <div class="h-80 max-md:h-60">
-            <canvas
-              bind:this={averageOrderValueChartEl}
-              id="averageOrderValueChart"
-            ></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Static Analytics Section -->
-    <div class="space-y-6 max-md:space-y-4">
-      <h2 class="text-2xl max-md:text-xl font-bold text-gray-800">
-        Current Status Overview
-      </h2>
-
-      <!-- Order & Payment Stats -->
-      <div class="grid grid-cols-12 gap-6 max-md:gap-4">
-        <div
-          class="col-span-12 md:col-span-6 lg:col-span-4 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Order Status</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Distribution of orders by their current status
-          </p>
-          <div class="h-72 max-md:h-60">
-            <canvas bind:this={orderStatusChartEl}></canvas>
-          </div>
-        </div>
-
-        <div
-          class="col-span-12 md:col-span-6 lg:col-span-4 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Payment Status</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Overview of order payment statuses
-          </p>
-          <div class="h-72 max-md:h-60">
-            <canvas bind:this={paymentStatusChartEl}></canvas>
-          </div>
-        </div>
-
-        <div
-          class="col-span-12 md:col-span-6 lg:col-span-4 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Completion Rate</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Ratio of orders completed on time vs late
-          </p>
-          <div class="h-72 max-md:h-60">
-            <canvas bind:this={completionPerformanceChartEl}></canvas>
-          </div>
+              <tr>
+                <th class="px-6 py-3 text-left">Student</th>
+                <th class="px-6 py-3 text-left">Due Date</th>
+                <th class="px-6 py-3 text-left">Status</th>
+                <th class="px-6 py-3 text-left">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {#each data.orderMetrics.recentOrders as order, i}
+                <tr class="hover:bg-gray-50 text-sm">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div
+                        class="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600"
+                      >
+                        {order.student
+                          .split(" ")
+                          .map((name) => name[0])
+                          .join("")}
+                      </div>
+                      <div class="ml-3">
+                        <p class="font-medium text-gray-800">{order.student}</p>
+                        <p class="text-xs text-gray-500">
+                          {new Date(order.orderedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap"
+                    >{new Date(order.dueDate).toLocaleDateString()}</td
+                  >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span
+                      class="px-2 py-1 rounded-full text-xs
+                      {order.status === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : order.status === 'in progress'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-yellow-100 text-yellow-800'}"
+                    >
+                      {order.status}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap font-medium"
+                    >{formatCurrency(order.amount)}</td
+                  >
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Student Analytics -->
-      <div class="grid grid-cols-12 gap-6 max-md:gap-4">
-        <div
-          class="col-span-12 lg:col-span-8 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Student Courses</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Number of students registered per course
+      <!-- Charts Grid -->
+      <div class="space-y-6">
+        <!-- Revenue Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <div
+              class="flex flex-col sm:flex-row justify-between sm:items-center mb-4"
+            >
+              <div>
+                <h3 class="font-medium text-gray-800">Revenue Trend</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                  Track revenue patterns over time
+                </p>
+              </div>
+              <select
+                bind:value={selectedRevenueType}
+                class="mt-2 sm:mt-0 px-3 py-2 text-sm border rounded-lg bg-white focus:ring-2 focus:ring-secondary focus:border-secondary"
+              >
+                <option value="order">By Order Date</option>
+                <option value="payment">By Payment Date</option>
+              </select>
+            </div>
+            <div class="h-60">
+              <canvas bind:this={revenueChartEl}></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <div>
+              <h3 class="font-medium text-gray-800">Average Order Value</h3>
+              <p class="text-xs text-gray-500 mt-1">
+                Average value of orders over time
+              </p>
+            </div>
+            <div class="h-60 mt-4">
+              <canvas bind:this={averageOrderValueChartEl}></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Status Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800">Order Status</h3>
+            <p class="text-xs text-gray-500 mt-1">Distribution by status</p>
+            <div class="h-52 mt-4">
+              <canvas bind:this={orderStatusChartEl}></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800">Payment Status</h3>
+            <p class="text-xs text-gray-500 mt-1">
+              Payment completion overview
+            </p>
+            <div class="h-52 mt-4">
+              <canvas bind:this={paymentStatusChartEl}></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800">Delivery Performance</h3>
+            <p class="text-xs text-gray-500 mt-1">On-time vs late deliveries</p>
+            <div class="h-52 mt-4">
+              <canvas bind:this={completionPerformanceChartEl}></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Section -->
+        <div class="bg-white p-5 rounded-xl shadow-sm">
+          <h3 class="font-medium text-gray-800 mb-1">Students by Course</h3>
+          <p class="text-xs text-gray-500">
+            Distribution of students across different courses
           </p>
-          <div class="h-80 max-md:h-60">
+          <div class="h-64 mt-4">
             <canvas bind:this={courseEnrollmentChartEl}></canvas>
           </div>
         </div>
 
-        <div
-          class="col-span-12 lg:col-span-4 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Gender Distribution</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Distribution of students by gender
-          </p>
-          <div class="h-80 max-md:h-60">
-            <canvas bind:this={genderChartEl}></canvas>
+        <!-- Performance Section: Two-column layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800 mb-1">Gender Distribution</h3>
+            <p class="text-xs text-gray-500">Students by gender</p>
+            <div class="h-60 mt-4">
+              <canvas bind:this={genderChartEl}></canvas>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Performance Metrics -->
-      <div class="grid grid-cols-12 gap-6 max-md:gap-4">
-        <div
-          class="col-span-12 md:col-span-6 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Weekly Distribution</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Pattern of orders received throughout the week
-          </p>
-          <div class="h-72 max-md:h-60">
-            <canvas bind:this={busyDaysChartEl}></canvas>
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800 mb-1">Weekly Orders</h3>
+            <p class="text-xs text-gray-500">Orders received by day of week</p>
+            <div class="h-60 mt-4">
+              <canvas bind:this={busyDaysChartEl}></canvas>
+            </div>
           </div>
         </div>
 
-        <div
-          class="col-span-12 md:col-span-6 bg-white/90 p-6 max-md:p-4 rounded-2xl shadow-lg border"
-        >
-          <h3 class="text-lg font-bold mb-2">Tailor Performance</h3>
-          <p class="text-xs text-gray-500 mb-4">
-            Number of orders completed by each tailor
-          </p>
-          <div class="h-72 max-md:h-60">
-            <canvas bind:this={employeePerformanceChartEl}></canvas>
+        <!-- Employee Performance Section: Two-column layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800 mb-1">Tailor Performance</h3>
+            <p class="text-xs text-gray-500">Orders completed by tailors</p>
+            <div class="h-60 mt-4">
+              <canvas bind:this={employeePerformanceChartEl}></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-xl shadow-sm">
+            <h3 class="font-medium text-gray-800 mb-1">Quarterly Revenue</h3>
+            <p class="text-xs text-gray-500">Revenue generated by quarter</p>
+            <div class="h-60 mt-4">
+              <canvas bind:this={quarterlyRevenueChartEl}></canvas>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </div>
 
-<!-- Add Modal Component -->
+<!-- Redesigned Modal Component -->
 {#if activeModal && modalData}
-  <div
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+  <button
+    class="fixed inset-0 bg-black/75 flex items-center justify-center z-50"
     transition:fade
     on:click={closeModal}
   >
-    <div
-      class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+    <button
+      class="bg-white rounded-xl p-0 max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden shadow-xl"
       on:click|stopPropagation
     >
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold text-gray-800">{modalData.title}</h3>
-        <button class="text-gray-500 hover:text-gray-700" on:click={closeModal}>
+      <div class="bg-secondary/10 px-6 py-4 flex justify-between items-center">
+        <h3 class="font-medium text-gray-800">{modalData.title}</h3>
+        <button class="text-gray-400 hover:text-gray-600" on:click={closeModal}>
           <svg
-            class="w-6 h-6"
+            class="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1228,80 +1215,105 @@
         </button>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              {#each modalData.columns as column}
-                <th
-                  class="px-4 py-2 text-left text-sm font-medium text-gray-500"
-                  >{column}</th
-                >
-              {/each}
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            {#each modalData.data as row}
-              <tr class="hover:bg-gray-50">
-                {#each Object.values(row) as cell}
-                  <td class="px-4 py-2 text-sm text-gray-900">{cell}</td>
+      <div class="p-6 overflow-y-auto max-h-[60vh]">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr>
+                {#each modalData.columns as column}
+                  <th
+                    class="px-4 py-2 text-left text-xs font-medium text-gray-500 border-b"
+                    >{column}</th
+                  >
                 {/each}
               </tr>
-            {/each}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {#each modalData.data as row}
+                <tr class="hover:bg-gray-50 border-b border-gray-100">
+                  {#each Object.values(row) as cell}
+                    <td class="px-4 py-3 text-sm text-gray-900">{cell}</td>
+                  {/each}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </div>
+    </button>
+  </button>
 {/if}
 
 <style>
-  :global(.chart-container) {
-    position: relative;
+  /* Updated styling for tables */
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
   }
 
-  /* Add smooth scrolling to the page */
-  :global(html) {
-    scroll-behavior: smooth;
+  th {
+    font-weight: 600;
   }
 
-  /* Add subtle animation to charts on hover */
+  /* Smooth transitions */
+  .transition-colors {
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  /* Chart hover effect */
   canvas {
-    transition: transform 0.3s ease;
+    transition: filter 0.2s ease;
   }
+
   canvas:hover {
-    transform: scale(1.02);
+    filter: brightness(0.98);
   }
 
-  /* Updated styles for a modern look */
-  .shadow {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  .hover\:scale-105:hover {
-    transform: scale(1.05);
-  }
-  .hover\:shadow-lg:hover {
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  /* Custom scrollbar for better UX */
+  .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
   }
 
-  /* Mobile-specific styles */
+  .overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* Responsive adjustments */
   @media (max-width: 768px) {
-    canvas {
-      max-height: 300px;
-    }
-
-    .chart-container {
-      margin-bottom: 1rem;
-    }
-
-    /* Add smooth scrolling for table */
     .overflow-x-auto {
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; /* Firefox */
     }
+  }
 
-    .overflow-x-auto::-webkit-scrollbar {
-      display: none; /* Chrome, Safari and Opera */
-    }
+  /* Add custom scrollbar styling for the sidebar */
+  aside.md\:overflow-y-auto::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  aside.md\:overflow-y-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  aside.md\:overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+  }
+
+  aside.md\:overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
   }
 </style>

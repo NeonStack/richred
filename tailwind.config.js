@@ -7,18 +7,18 @@ module.exports = {
         background: "#ffffff",
         foreground: "#1a202c",
         primary: {
-          DEFAULT: "#B73233",
-          dark: "#E85D2F",
+          DEFAULT: "#e63946", // Softer red
+          dark: "#c1121f", // Darker but not harsh
         },
-        secondary: "#64748b",
-        muted: "#FFF0E8",
+        secondary: "#457b9d", // Complementary blue tone
+        muted: "#f1faee", // Very light background
         accent: {
-          DEFAULT: "#E85D2F",
-          hover: "#C87D41",
+          DEFAULT: "#e63946", // Same as primary for consistency
+          hover: "#c1121f", // Same as primary-dark
         },
         "accent-foreground": "#ffffff",
-        input: "#FFE0D1",
-        border: "#FFB599",
+        input: "#f1faee", // Very light background
+        border: "#a8dadc", // Light blue-ish border
         success: {
           light: '#E6F4EA',
           DEFAULT: '#34A853',
