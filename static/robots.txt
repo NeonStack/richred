@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /employee/
+Allow: /admin/
+
+Sitemap: https://scgjoms.vercel.app/sitemap.xml
