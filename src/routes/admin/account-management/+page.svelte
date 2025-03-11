@@ -6,7 +6,7 @@
   export let data;
 
   // Constants
-  const EMAIL_DOMAIN = "@scg.shop";
+  const EMAIL_DOMAIN = "@rr.com";
 
   // Initialize accounts from server data with $:
   $: accounts = data.accounts || [];

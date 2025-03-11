@@ -1,22 +1,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://scgjoms.vercel.app/</loc>
+    <loc>https://richred.vercel.app/</loc>
     <lastmod>2024-12-03T01:41:00.000Z</lastmod>
   </url>
   <url>
-    <loc>https://scgjoms.vercel.app/employee/dashboard</loc>
+    <loc>https://richred.vercel.app/employee/dashboard</loc>
     <lastmod>2024-12-03T01:41:00.000Z</lastmod>
   </url>
   <url>
-    <loc>https://scgjoms.vercel.app/employee/orders</loc>
+    <loc>https://richred.vercel.app/employee/orders</loc>
     <lastmod>2024-12-03T01:41:00.000Z</lastmod>
   </url>
   <url>
-    <loc>https://scgjoms.vercel.app/employee/students</loc>
+    <loc>https://richred.vercel.app/employee/students</loc>
     <lastmod>2024-12-03T01:41:00.000Z</lastmod>
   </url>
   <url>
-    <loc>https://scgjoms.vercel.app/employee/profile</loc>
+    <loc>https://richred.vercel.app/employee/profile</loc>
     <lastmod>2024-12-03T01:41:00.000Z</lastmod>
   </url>
 </urlset>

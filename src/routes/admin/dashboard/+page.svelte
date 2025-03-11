@@ -2,7 +2,6 @@
   import { Chart, registerables } from "chart.js";
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
-  import AIInsights from "$lib/components/dashboard/AIInsights.svelte";
   import * as ExcelJS from "exceljs";
 
   Chart.register(...registerables);
@@ -113,10 +112,6 @@
   let selectedTimeFrame = "day";
   let selectedRevenueType = "order"; // Add this new state
   const timeFrames = ["day", "week", "month", "year"];
-
-  // Add AI data state
-  let aiData = null;
-  let aiLoading = true;
 
   // Add chart instance variables
   let revenueChart;
@@ -449,18 +444,6 @@
   }
 
   onMount(async () => {
-    try {
-      const response = await fetch("/api/ai");
-      if (response.ok) {
-        aiData = await response.json();
-      } else {
-        console.error("Failed to load AI insights");
-      }
-    } catch (error) {
-      console.error("Error fetching AI insights:", error);
-    } finally {
-      aiLoading = false;
-    }
     updateCharts();
   });
 
@@ -979,8 +962,6 @@
         </div>
       {/each}
     </div>
-
-    <AIInsights {aiData} loading={aiLoading} />
 
     <!-- Recent Orders Table -->
     <div class="bg-white/90 p-6 max-md:p-3 rounded-2xl shadow-lg border">

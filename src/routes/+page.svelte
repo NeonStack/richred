@@ -34,13 +34,13 @@
   <div class="flex flex-row gap-16 items-stretch max-lg:items-center justify-center w-full max-w-6xl max-lg:flex-col-reverse max-lg:gap-5">
     <div class="w-1/2 max-lg:w-full max-w-md flex flex-col items-center bg-background p-10 rounded-2xl shadow-2xl">
       <img
-        src="./SCGHorizontal.png"
-        alt="SCG logo"
+        src="./RichRedHorizontal.png"
+        alt="RichRed logo"
         class="w-full max-w-md h-auto object-contain mb-8"
       />
       <div class="w-full max-w-md">
         <h2 class="text-xl font-bold text-foreground mb-4">Job Order Monitoring System</h2>
-        <p class="text-secondary mb-2">This system is exclusively for SCG Dress Shoppe employees.</p>
+        <p class="text-secondary mb-2">This system is exclusively for RichRed Clotheshoppe employees.</p>
         <p class="text-secondary mb-2">If you're having trouble logging in, please contact the admin.</p>
         <p class="text-primary text-sm mt-4">JOMS v1.0 - Job Order Monitoring System</p>
       </div>

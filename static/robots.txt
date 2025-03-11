@@ -3,4 +3,4 @@ Allow: /
 Allow: /employee/
 Allow: /admin/
 
-Sitemap: https://scgjoms.vercel.app/sitemap.xml
+Sitemap: https://rr.vercel.app/sitemap.xml

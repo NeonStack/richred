@@ -624,7 +624,7 @@
 
     // Load and draw logo
     const logo = new Image();
-    logo.src = "/SCGLogo.png";
+    logo.src = "/RichRedLogo.png";
     await new Promise((resolve) => {
       logo.onload = resolve;
     });
@@ -673,7 +673,7 @@
     ctx.fillStyle = "#f3f4f6";
     ctx.font = "14px Arial";
     ctx.rotate((-45 * Math.PI) / 180);
-    ctx.fillText("SCG DRESSHOPPE OFFICIAL RECEIPT", -100, 100);
+    ctx.fillText("RICHRED CLOTHESHOPPE RECEIPT", -100, 100);
 
     // Set watermark background
     setTimeout(() => {
@@ -1276,7 +1276,7 @@
 
           <!-- Header -->
           <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold">SCG Dresshoppe</h1>
+            <h1 class="text-2xl font-bold">RichRed Clotheshoppe</h1>
             <p>Official Receipt</p>
           </div>
 
@@ -1285,7 +1285,7 @@
             class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full aspect-square opacity-10"
           >
             <img
-              src="/SCGLogo.png"
+              src="/RichRedLogo.png"
               alt="Logo"
               class="w-full h-full object-contain"
             />
@@ -1296,7 +1296,7 @@
             class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-10 text-[8px] whitespace-nowrap"
             style="word-spacing: 20px;"
           >
-            {Array(20).fill("SCG DRESSHOPPE OFFICIAL DOCUMENT").join(" ")}
+            {Array(20).fill("RITCHRED CLOTHESHOPPE OFFICIAL DOCUMENT").join(" ")}
           </div>
 
           <!-- Add QR code section -->
@@ -1393,8 +1393,7 @@
           <!-- Add footer with security information -->
           <div class="mt-8 pt-4 border-t text-xs text-gray-500">
             <p class="mt-2">
-              This is an official receipt from SCG Dresshoppe. Any alterations
-              void this document.
+              This is an official receipt from RichRed Clotheshoppe. Any alterations void this document.
             </p>
             <p>
               Receipt ID: {orderForReceipt.id} • Generated: {new Date().toLocaleString()}
