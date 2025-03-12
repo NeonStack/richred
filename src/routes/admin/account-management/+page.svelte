@@ -515,42 +515,6 @@
       </button>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="relative">
-          <input
-            type="text"
-            placeholder="Search by name, email, role..."
-            bind:value={searchQuery}
-            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-          <svg
-            class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          {#if searchQuery}
-            <button
-              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              on:click={() => (searchQuery = "")}
-            >
-              x
-            </button>
-          {/if}
-        </div>
-        <!-- ...other filters... -->
-      </div>
-    </div>
-
     <!-- Main content card -->
     <div class="bg-white p-6 rounded-lg shadow-md">
       <div class="flex flex-col md:flex-row justify-between gap-4 md:gap-0 mb-4">
@@ -566,53 +530,40 @@
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
-            <tr class="bg-muted max-md:whitespace-nowrap">
-              <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
-                on:click={() => handleSort("name")}
-              >
-                Name
-                {#if sortBy.field === "name"}
-                  <span class="ml-1">{sortBy.order === "asc" ? "↑" : "↓"}</span>
-                {/if}
-              </th>
-              <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
-                on:click={() => handleSort("email")}
-              >
-                Email
-                {#if sortBy.field === "email"}
-                  <span class="ml-1">{sortBy.order === "asc" ? "↑" : "↓"}</span>
-                {/if}
-              </th>
-              <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
-                on:click={() => handleSort("role")}
-              >
-                Role
-                {#if sortBy.field === "role"}
-                  <span class="ml-1">{sortBy.order === "asc" ? "↑" : "↓"}</span>
-                {/if}
-              </th>
-              <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
-                on:click={() => handleSort("position")}
-              >
-                Position
-                {#if sortBy.field === "position"}
-                  <span class="ml-1">{sortBy.order === "asc" ? "↑" : "↓"}</span>
-                {/if}
-              </th>
-              <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
-                on:click={() => handleSort("created_at")}
-              >
-                Created At
-                {#if sortBy.field === "created_at"}
-                  <span class="ml-1">{sortBy.order === "asc" ? "↑" : "↓"}</span>
-                {/if}
-              </th>
-              <th class="p-2 text-right">Actions</th>
+            <tr class="bg-gray-50">
+              {#each [
+                { field: "name", label: "Name" },
+                { field: "email", label: "Email" },
+                { field: "role", label: "Role" },
+                { field: "position", label: "Position" },
+                { field: "created_at", label: "Created At" }
+              ] as { field, label }}
+                <th
+                  class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+                  on:click={() => handleSort(field)}
+                >
+                  <div class="flex items-center gap-1">
+                    {label}
+                    {#if sortBy.field === field}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 {sortBy.order === 'asc' ? 'transform rotate-180' : ''}"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    {/if}
+                  </div>
+                </th>
+              {/each}
+              <th class="p-4 text-right font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody>

@@ -1289,7 +1289,10 @@
           </div>
 
           <!-- Receipt Details -->
-          <div class="space-y-1 text-[10px] w-full" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+          <div
+            class="space-y-1 text-[10px] w-full"
+            style="text-align: center; display: flex; flex-direction: column; align-items: center;"
+          >
             <!-- Basic Info -->
             <div class="flex justify-between w-full">
               <div>Receipt No:</div>
@@ -1691,32 +1694,50 @@
         <table class="w-full">
           {#if activeTab === "payments"}
             <thead>
-              <tr class="bg-muted max-md:whitespace-nowrap">
+              <tr class="bg-gray-50">
                 {#each ["id", "student", "status", "total_amount", "amount_paid", "balance", "payment_date", "payment_status", "payment_updated_by"] as field}
                   <th
-                    class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                    class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                     on:click={() => sort(field.toLowerCase())}
                   >
-                    {field === "total_amount"
-                      ? "Total"
-                      : field === "amount_paid"
-                        ? "Paid"
-                        : field === "payment_date"
-                          ? "Last Payment"
-                          : field === "payment_status"
-                            ? "Payment Status"
-                            : field === "payment_updated_by"
-                              ? "Updated By"
-                              : field.charAt(0).toUpperCase() +
-                                field.slice(1).replace("_", " ")}
-                    {#if sortField === field}
-                      <span class="ml-1"
-                        >{sortDirection === "asc" ? "↑" : "↓"}</span
-                      >
-                    {/if}
+                    <div class="flex items-center gap-1">
+                      {field === "total_amount"
+                        ? "Total"
+                        : field === "amount_paid"
+                          ? "Paid"
+                          : field === "payment_date"
+                            ? "Last Payment"
+                            : field === "payment_status"
+                              ? "Payment Status"
+                              : field === "payment_updated_by"
+                                ? "Updated By"
+                                : field.charAt(0).toUpperCase() +
+                                  field.slice(1).replace("_", " ")}
+
+                      {#if sortField === field.toLowerCase()}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 {sortDirection === 'asc'
+                            ? 'transform rotate-180'
+                            : ''}"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      {/if}
+                    </div>
                   </th>
                 {/each}
-                <th class="p-2">Actions</th>
+                <th class="p-4 text-right font-semibold text-gray-600"
+                  >Actions</th
+                >
               </tr>
             </thead>
             <tbody>
@@ -1787,25 +1808,45 @@
             </tbody>
           {:else if activeTab === "pending"}
             <thead>
-              <tr class="bg-muted max-md:whitespace-nowrap">
-                <th class="p-2 w-12">Select</th>
+              <tr class="bg-gray-50">
+                <th class="p-4 text-left font-semibold text-gray-600 w-12"
+                  >Select</th
+                >
                 {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
-                    class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                    class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                     on:click={() => sort(field)}
                   >
-                    {field === "created_at"
-                      ? "Ordered At"
-                      : field.charAt(0).toUpperCase() +
-                        field.slice(1).replace("_", " ")}
-                    {#if sortField === field}
-                      <span class="ml-1"
-                        >{sortDirection === "asc" ? "↑" : "↓"}</span
-                      >
-                    {/if}
+                    <div class="flex items-center gap-1">
+                      {field === "created_at"
+                        ? "Ordered At"
+                        : field.charAt(0).toUpperCase() +
+                          field.slice(1).replace("_", " ")}
+
+                      {#if sortField === field}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 {sortDirection === 'asc'
+                            ? 'transform rotate-180'
+                            : ''}"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      {/if}
+                    </div>
                   </th>
                 {/each}
-                <th class="p-2">Actions</th>
+                <th class="p-4 text-right font-semibold text-gray-600"
+                  >Actions</th
+                >
               </tr>
             </thead>
             <tbody>
@@ -1872,25 +1913,45 @@
             </tbody>
           {:else if activeTab === "in_progress"}
             <thead>
-              <tr class="bg-muted max-md:whitespace-nowrap">
+              <tr class="bg-gray-50">
                 {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
-                    class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                    class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                     on:click={() => sort(field)}
                   >
-                    {field === "created_at"
-                      ? "Ordered At"
-                      : field.charAt(0).toUpperCase() +
-                        field.slice(1).replace("_", " ")}
-                    {#if sortField === field}
-                      <span class="ml-1"
-                        >{sortDirection === "asc" ? "↑" : "↓"}</span
-                      >
-                    {/if}
+                    <div class="flex items-center gap-1">
+                      {field === "created_at"
+                        ? "Ordered At"
+                        : field.charAt(0).toUpperCase() +
+                          field.slice(1).replace("_", " ")}
+
+                      {#if sortField === field}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 {sortDirection === 'asc'
+                            ? 'transform rotate-180'
+                            : ''}"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      {/if}
+                    </div>
                   </th>
                 {/each}
-                <th class="p-2">Assigned To</th>
-                <th class="p-2">Assigned By</th>
+                <th class="p-4 text-left font-semibold text-gray-600"
+                  >Assigned To</th
+                >
+                <th class="p-4 text-left font-semibold text-gray-600"
+                  >Assigned By</th
+                >
               </tr>
             </thead>
             <tbody>
@@ -1941,25 +2002,45 @@
             </tbody>
           {:else if activeTab === "completed"}
             <thead>
-              <tr class="bg-muted max-md:whitespace-nowrap">
+              <tr class="bg-gray-50">
                 {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
-                    class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                    class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                     on:click={() => sort(field)}
                   >
-                    {field === "created_at"
-                      ? "Ordered At"
-                      : field.charAt(0).toUpperCase() +
-                        field.slice(1).replace("_", " ")}
-                    {#if sortField === field}
-                      <span class="ml-1"
-                        >{sortDirection === "asc" ? "↑" : "↓"}</span
-                      >
-                    {/if}
+                    <div class="flex items-center gap-1">
+                      {field === "created_at"
+                        ? "Ordered At"
+                        : field.charAt(0).toUpperCase() +
+                          field.slice(1).replace("_", " ")}
+
+                      {#if sortField === field}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 {sortDirection === 'asc'
+                            ? 'transform rotate-180'
+                            : ''}"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      {/if}
+                    </div>
                   </th>
                 {/each}
-                <th class="p-2">Assigned To</th>
-                <th class="p-2">Assigned By</th>
+                <th class="p-4 text-left font-semibold text-gray-600"
+                  >Assigned To</th
+                >
+                <th class="p-4 text-left font-semibold text-gray-600"
+                  >Assigned By</th
+                >
               </tr>
             </thead>
             <tbody>

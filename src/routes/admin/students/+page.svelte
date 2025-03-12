@@ -15,10 +15,11 @@
       courses = data.courses || [];
       uniformConfigs = data.uniformConfigs || {};
       measurementTypes = data.measurementTypes || {};
-      
+
       // Apply initial sorting
-      students = students.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      students = students.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       students = [...students]; // Trigger reactivity
     } catch (err) {
@@ -186,77 +187,77 @@
 
   // Add form validation state
   let formErrors = {
-    first_name: '',
-    last_name: '',
-    contact_number: '',
-    gender: '',
-    course_id: '',
-    address: ''
+    first_name: "",
+    last_name: "",
+    contact_number: "",
+    gender: "",
+    course_id: "",
+    address: "",
   };
-
 
   let serverErrors = {};
 
   function validateField(field, value) {
     formErrors = { ...formErrors };
-    
+
     switch (field) {
-        case 'first_name':
-        case 'last_name':
-            if (!value) {
-                formErrors[field] = 'Name is required';
-            } else if (value.length < 2 || value.length > 50) {
-                formErrors[field] = 'Must be between 2-50 characters';
-            } else if (!/^[a-zA-Z\s.]+$/.test(value)) {
-                formErrors[field] = 'Only letters, spaces, and dots allowed';
-            } else {
-                delete formErrors[field];
-            }
-            break;
-        case 'contact_number':
-            if (!value) {
-                formErrors[field] = 'Contact number is required';
-            } else if (!/^09\d{9}$/.test(value)) {
-                formErrors[field] = 'Must be 11 digits starting with 09';
-            } else {
-                delete formErrors[field];
-            }
-            break;
-        case 'address':
-            if (!value) {
-                formErrors[field] = 'Address is required';
-            } else if (value.length < 5 || value.length > 200) {
-                formErrors[field] = 'Must be between 5-200 characters';
-            } else if (!/^[a-zA-Z0-9\s,.\-#]+$/.test(value)) {
-                formErrors[field] = 'Only letters, numbers, spaces, commas, dots, hyphens, and #';
-            } else {
-                delete formErrors[field];
-            }
-            break;
-        case 'gender':
-          if (!value) {
-            formErrors[field] = 'Please select a gender';
-          } else {
-            delete formErrors[field];
-          }
-          break;
-        case 'course_id':
-          if (!value) {
-            formErrors[field] = 'Please select a course';
-          } else {
-            delete formErrors[field];
-          }
-          break;
+      case "first_name":
+      case "last_name":
+        if (!value) {
+          formErrors[field] = "Name is required";
+        } else if (value.length < 2 || value.length > 50) {
+          formErrors[field] = "Must be between 2-50 characters";
+        } else if (!/^[a-zA-Z\s.]+$/.test(value)) {
+          formErrors[field] = "Only letters, spaces, and dots allowed";
+        } else {
+          delete formErrors[field];
+        }
+        break;
+      case "contact_number":
+        if (!value) {
+          formErrors[field] = "Contact number is required";
+        } else if (!/^09\d{9}$/.test(value)) {
+          formErrors[field] = "Must be 11 digits starting with 09";
+        } else {
+          delete formErrors[field];
+        }
+        break;
+      case "address":
+        if (!value) {
+          formErrors[field] = "Address is required";
+        } else if (value.length < 5 || value.length > 200) {
+          formErrors[field] = "Must be between 5-200 characters";
+        } else if (!/^[a-zA-Z0-9\s,.\-#]+$/.test(value)) {
+          formErrors[field] =
+            "Only letters, numbers, spaces, commas, dots, hyphens, and #";
+        } else {
+          delete formErrors[field];
+        }
+        break;
+      case "gender":
+        if (!value) {
+          formErrors[field] = "Please select a gender";
+        } else {
+          delete formErrors[field];
+        }
+        break;
+      case "course_id":
+        if (!value) {
+          formErrors[field] = "Please select a course";
+        } else {
+          delete formErrors[field];
+        }
+        break;
     }
   }
 
   // Enhanced form submission
   function handleSubmit() {
     return async ({ result }) => {
-      if (result.type === 'failure') {
+      if (result.type === "failure") {
         const serverErrors = result.data?.errors || {};
         formErrors = { ...formErrors, ...serverErrors };
-      } else if (result.type === 'success') {
+      } else if (result.type === "success") {
         showModal = false;
         window.location.reload();
       }
@@ -266,7 +267,7 @@
   // Add pagination state
   let currentPage = 1;
   let rowsPerPage = 10;
-  
+
   // Calculate total pages and paginated students
   $: totalPages = Math.ceil((filteredStudents?.length || 0) / rowsPerPage);
   $: paginatedStudents = filteredStudents?.slice(
@@ -293,15 +294,12 @@
   }
 
   // Generate page numbers for pagination
-  $: pageNumbers = Array.from(
-    { length: Math.min(5, totalPages) },
-    (_, i) => {
-      if (totalPages <= 5) return i + 1;
-      if (currentPage <= 3) return i + 1;
-      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
-      return currentPage - 2 + i;
-    }
-  );
+  $: pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (currentPage <= 3) return i + 1;
+    if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+    return currentPage - 2 + i;
+  });
 </script>
 
 {#if error}
@@ -311,34 +309,41 @@
 {:else}
   <div class="p-6">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mb-6">
+    <div
+      class="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mb-6"
+    >
       <!-- Header Section -->
-  <div class="flex justify-between items-center">
-    <div class="flex items-center gap-4">
-      <div class="bg-primary/10 p-3 rounded-lg">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="w-6 h-6 text-primary"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-        <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+          <div class="bg-primary/10 p-3 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-6 h-6 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                fill="currentColor"
+                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4s-4 1.79-4 4s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800">Student Management</h1>
+            <p class="text-sm text-gray-500">
+              Manage student info and measurements
+            </p>
+          </div>
+        </div>
       </div>
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">Student Management</h1>
-        <p class="text-sm text-gray-500">
-            Manage student info and measurements
-        </p>
-      </div>
-    </div>
-  </div>
     </div>
 
     <!-- Main content card -->
     <div class="bg-white p-6 rounded-lg shadow-md">
-      <div class="flex flex-col md:flex-row justify-between gap-4 md:gap-0 mb-4">
+      <div
+        class="flex flex-col md:flex-row justify-between gap-4 md:gap-0 mb-4"
+      >
         <h2 class="text-xl font-semibold">Students List</h2>
         <div class="flex flex-col md:flex-row gap-4">
           <input
@@ -357,87 +362,173 @@
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full min-w-[800px]">
           <thead>
-            <tr class="bg-muted max-md:whitespace-nowrap">
+            <tr class="bg-gray-50">
               <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("first_name")}
               >
-                First Name
-                {#if sortField === "first_name"}
-                  <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span
-                  >
-                {/if}
+                <div class="flex items-center gap-1">
+                  First Name
+                  {#if sortField === "first_name"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
               </th>
               <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("last_name")}
               >
-                Last Name
-                {#if sortField === "last_name"}
-                  <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span
-                  >
-                {/if}
+                <div class="flex items-center gap-1">
+                  Last Name
+                  {#if sortField === "last_name"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
               </th>
               <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("course")}
               >
-                Course
-                {#if sortField === "course"}
-                  <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span
-                  >
-                {/if}
+                <div class="flex items-center gap-1">
+                  Course
+                  {#if sortField === "course"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
               </th>
               <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("gender")}
               >
-                Gender
-                {#if sortField === "gender"}
-                  <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span
-                  >
-                {/if}
+                <div class="flex items-center gap-1">
+                  Gender
+                  {#if sortField === "gender"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
               </th>
-              <th class="p-2 text-left">Contact Number</th>
+              <th class="p-4 text-left font-semibold text-gray-600"
+                >Contact Number</th
+              >
               <th
-                class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("created_at")}
               >
-                Created At
-                {#if sortField === "created_at"}
-                  <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-                {/if}
+                <div class="flex items-center gap-1">
+                  Created At
+                  {#if sortField === "created_at"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
               </th>
-              <th class="p-2 text-right">Actions</th>
+              <th class="p-4 text-right font-semibold text-gray-600">Actions</th
+              >
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-gray-100">
             {#each paginatedStudents as student}
-              <tr class="border-b hover:bg-muted">
-                <td class="p-2">{student.first_name}</td>
-                <td class="p-2">{student.last_name}</td>
-                <td class="p-2">
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="p-4">{student.first_name}</td>
+                <td class="p-4">{student.last_name}</td>
+                <td class="p-4">
                   <span
                     class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
                   >
                     {student.course?.course_code}
                   </span>
                 </td>
-                <td class="p-2">
+                <td class="p-4">
                   <span
-                    class="px-2 py-1 rounded-full text-sm
-                                        {student.gender === 'male'
+                    class="px-2 py-1 rounded-full text-sm {student.gender ===
+                    'male'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-pink-100 text-pink-800'}"
                   >
                     {student.gender}
                   </span>
                 </td>
-                <td class="p-2">{student.contact_number || "-"}</td>
-                <td class="p-2">{new Date(student.created_at).toLocaleDateString()}</td>
-                <td class="p-2 text-right">
+                <td class="p-4">{student.contact_number || "-"}</td>
+                <td class="p-4"
+                  >{new Date(student.created_at).toLocaleDateString()}</td
+                >
+                <td class="p-4 text-right">
                   <button
                     class="text-blue-600 hover:text-blue-800 mr-2"
                     on:click={() => openEditModal(student)}
@@ -452,6 +543,26 @@
                   </button>
                 </td>
               </tr>
+            {:else}
+              <tr>
+                <td colspan="7" class="py-8 text-center text-gray-500">
+                  <div class="flex flex-col items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-10 w-10 text-gray-300 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p class="text-lg font-medium">No students found</p>
+                    <p class="text-sm">Try adjusting your search</p>
+                  </div>
+                </td>
+              </tr>
             {/each}
           </tbody>
         </table>
@@ -459,28 +570,37 @@
         <!-- Add Pagination Controls -->
         <div class="flex items-center justify-between px-4 py-3 border-t">
           <div class="flex items-center text-sm text-gray-500">
-            Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredStudents?.length || 0)} of {filteredStudents?.length || 0} entries
+            Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(
+              currentPage * rowsPerPage,
+              filteredStudents?.length || 0
+            )} of {filteredStudents?.length || 0} entries
           </div>
           <div class="flex items-center gap-2">
             <button
-              class="px-3 py-1 rounded border {currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'hover:bg-gray-50'}"
               on:click={prevPage}
               disabled={currentPage === 1}
             >
               Previous
             </button>
-            
+
             {#each pageNumbers as pageNum}
               <button
-                class="px-3 py-1 rounded border {currentPage === pageNum ? 'bg-primary text-white' : 'hover:bg-gray-50'}"
+                class="px-3 py-1 rounded border {currentPage === pageNum
+                  ? 'bg-primary text-white'
+                  : 'hover:bg-gray-50'}"
                 on:click={() => goToPage(pageNum)}
               >
                 {pageNum}
               </button>
             {/each}
-            
+
             <button
-              class="px-3 py-1 rounded border {currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'hover:bg-gray-50'}"
               on:click={nextPage}
               disabled={currentPage === totalPages}
             >
@@ -528,7 +648,7 @@
           <!-- Show form-level errors if any -->
           {#if formErrors._form || serverErrors._form}
             <div class="p-4 bg-red-50 text-red-600 rounded-lg">
-                {formErrors._form || serverErrors._form}
+              {formErrors._form || serverErrors._form}
             </div>
           {/if}
 
@@ -546,8 +666,10 @@
                   type="text"
                   name="first_name"
                   value={editingStudent.first_name || ""}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.first_name ? 'border-red-500' : 'border-gray-300'}"
-                  on:input={(e) => validateField('first_name', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.first_name
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:input={(e) => validateField("first_name", e.target.value)}
                   required
                 />
                 {#if formErrors.first_name || serverErrors.first_name}
@@ -565,8 +687,10 @@
                   type="text"
                   name="last_name"
                   value={editingStudent.last_name || ""}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.last_name ? 'border-red-500' : 'border-gray-300'}"
-                  on:input={(e) => validateField('last_name', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.last_name
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:input={(e) => validateField("last_name", e.target.value)}
                   required
                 />
                 {#if formErrors.last_name || serverErrors.last_name}
@@ -577,12 +701,16 @@
               </div>
 
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                <label class="block text-sm font-medium text-gray-700"
+                  >Gender</label
+                >
                 <select
                   name="gender"
                   bind:value={selectedGender}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.gender ? 'border-red-500' : 'border-gray-300'}"
-                  on:change={(e) => validateField('gender', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.gender
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:change={(e) => validateField("gender", e.target.value)}
                   required
                 >
                   <option value="">Select Gender</option>
@@ -595,12 +723,16 @@
               </div>
 
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Course</label>
+                <label class="block text-sm font-medium text-gray-700"
+                  >Course</label
+                >
                 <select
                   name="course_id"
                   bind:value={selectedCourseId}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.course_id ? 'border-red-500' : 'border-gray-300'}"
-                  on:change={(e) => validateField('course_id', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.course_id
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:change={(e) => validateField("course_id", e.target.value)}
                   required
                 >
                   <option value="">Select Course</option>
@@ -611,7 +743,9 @@
                   {/each}
                 </select>
                 {#if formErrors.course_id}
-                  <p class="text-red-500 text-sm mt-1">{formErrors.course_id}</p>
+                  <p class="text-red-500 text-sm mt-1">
+                    {formErrors.course_id}
+                  </p>
                 {/if}
               </div>
 
@@ -623,8 +757,11 @@
                   type="text"
                   name="contact_number"
                   value={editingStudent.contact_number || ""}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.contact_number ? 'border-red-500' : 'border-gray-300'}"
-                  on:input={(e) => validateField('contact_number', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.contact_number
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:input={(e) =>
+                    validateField("contact_number", e.target.value)}
                   placeholder="09XXXXXXXXX"
                 />
                 {#if formErrors.contact_number || serverErrors.contact_number}
@@ -635,12 +772,16 @@
               </div>
 
               <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Address</label>
+                <label class="block text-sm font-medium text-gray-700"
+                  >Address</label
+                >
                 <textarea
                   name="address"
                   value={editingStudent.address || ""}
-                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.address ? 'border-red-500' : 'border-gray-300'}"
-                  on:input={(e) => validateField('address', e.target.value)}
+                  class="w-full p-3 border rounded-lg focus:ring-2 {formErrors.address
+                    ? 'border-red-500'
+                    : 'border-gray-300'}"
+                  on:input={(e) => validateField("address", e.target.value)}
                   rows="2"
                 ></textarea>
                 {#if formErrors.address}

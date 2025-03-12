@@ -196,7 +196,7 @@
   // Add pagination state
   let currentPage = 1;
   let rowsPerPage = 10;
-  
+
   // Calculate total pages and paginated configs
   $: totalPages = Math.ceil((filteredConfigs?.length || 0) / rowsPerPage);
   $: paginatedConfigs = filteredConfigs?.slice(
@@ -223,15 +223,12 @@
   }
 
   // Generate page numbers for pagination
-  $: pageNumbers = Array.from(
-    { length: Math.min(5, totalPages) },
-    (_, i) => {
-      if (totalPages <= 5) return i + 1;
-      if (currentPage <= 3) return i + 1;
-      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
-      return currentPage - 2 + i;
-    }
-  );
+  $: pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (currentPage <= 3) return i + 1;
+    if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+    return currentPage - 2 + i;
+  });
 </script>
 
 <div class="p-6">
@@ -257,7 +254,9 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-2xl font-bold text-gray-800">Uniform Configuration</h1>
+          <h1 class="text-2xl font-bold text-gray-800">
+            Uniform Configuration
+          </h1>
           <p class="text-sm text-gray-500">
             Manage and customize uniform configurations
           </p>
@@ -289,118 +288,223 @@
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full">
+      <table class="w-full min-w-[800px]">
         <thead>
-          <tr class="bg-muted max-md:whitespace-nowrap">
+          <tr class="bg-gray-50">
             <th
-              class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
               on:click={() => toggleSort("course")}
             >
-              Course
-              {#if sortField === "course"}
-                <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-              {/if}
+              <div class="flex items-center gap-1">
+                Course
+                {#if sortField === "course"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                {/if}
+              </div>
             </th>
             <th
-              class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
               on:click={() => toggleSort("gender")}
             >
-              Gender
-              {#if sortField === "gender"}
-                <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-              {/if}
+              <div class="flex items-center gap-1">
+                Gender
+                {#if sortField === "gender"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                {/if}
+              </div>
             </th>
             <th
-              class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
               on:click={() => toggleSort("base_price")}
             >
-              Base Price
-              {#if sortField === "base_price"}
-                <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-              {/if}
+              <div class="flex items-center gap-1">
+                Base Price
+                {#if sortField === "base_price"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                {/if}
+              </div>
             </th>
             <th
-              class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
               on:click={() => toggleSort("wear_type")}
             >
-              Wear Type
-              {#if sortField === "wear_type"}
-                <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-              {/if}
+              <div class="flex items-center gap-1">
+                Wear Type
+                {#if sortField === "wear_type"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                {/if}
+              </div>
             </th>
             <th
-              class="p-2 cursor-pointer hover:bg-gray-200 text-left"
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
               on:click={() => toggleSort("created_at")}
             >
-              Created At
-              {#if sortField === "created_at"}
-                <span class="ml-1">{sortDirection === "asc" ? "↑" : "↓"}</span>
-              {/if}
+              <div class="flex items-center gap-1">
+                Created At
+                {#if sortField === "created_at"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                {/if}
+              </div>
             </th>
-            <th class="p-2 text-left">Reg. Students</th>
-            <th class="p-2 text-right">Actions</th>
+            <th class="p-4 text-left font-semibold text-gray-600"
+              >Reg. Students</th
+            >
+            <th class="p-4 text-right font-semibold text-gray-600">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-gray-100">
           {#each paginatedConfigs || [] as config (config.id)}
-            <tr class="border-b hover:bg-muted">
-              <td class="p-2">
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="p-4">
                 <span
                   class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
                 >
                   {config.courses?.course_code || "N/A"}
                 </span>
               </td>
-              <td class="p-2 capitalize">
+              <td class="p-4">
                 <span
-                  class="px-2 py-1 rounded-full text-sm
-                                    {config.gender === 'male'
+                  class="px-2 py-1 rounded-full text-sm {config.gender ===
+                  'male'
                     ? 'bg-green-100 text-green-800'
-                    : config.gender === 'female'
-                      ? 'bg-pink-100 text-pink-800'
-                      : ''}"
+                    : 'bg-pink-100 text-pink-800'}"
                 >
                   {config.gender}
                 </span>
               </td>
-              <td class="p-2">₱{config.base_price.toFixed(2)}</td>
-              <td class="p-2">
+              <td class="p-4">₱{config.base_price.toFixed(2)}</td>
+              <td class="p-4">
                 <span
-                  class="px-2 py-1 rounded-full text-sm
-                                    {config.wear_type === 'upper'
+                  class="px-2 py-1 rounded-full text-sm {config.wear_type ===
+                  'upper'
                     ? 'bg-orange-100 text-orange-800'
                     : 'bg-indigo-100 text-indigo-800'}"
                 >
                   {config.wear_type}
                 </span>
               </td>
-              <td class="p-2">{formatDate(config.created_at)}</td>
-              <td class="p-2">
+              <td class="p-4">{formatDate(config.created_at)}</td>
+              <td class="p-4">
                 <span
                   class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
                 >
                   {config.student_count} student/s
                 </span>
               </td>
-              <td class="p-2 text-right">
+              <td class="p-4 text-right">
                 <button
+                  class="text-blue-600 hover:text-blue-800 mr-2"
                   on:click={() => {
                     selectedConfig = config;
                     showForm = true;
                   }}
-                  class="text-blue-600 hover:text-blue-800 mr-2"
                 >
                   Edit
                 </button>
                 <button
+                  class="text-red-600 hover:text-red-800"
                   on:click={() => {
                     configToDelete = config;
                     showDeleteModal = true;
                   }}
-                  class="text-red-600 hover:text-red-800"
                 >
                   Delete
                 </button>
+              </td>
+            </tr>
+          {:else}
+            <tr>
+              <td colspan="7" class="py-8 text-center text-gray-500">
+                <div class="flex flex-col items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-10 w-10 text-gray-300 mb-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p class="text-lg font-medium">No configurations found</p>
+                  <p class="text-sm">Try adjusting your search</p>
+                </div>
               </td>
             </tr>
           {/each}
@@ -410,28 +514,37 @@
       <!-- Add Pagination Controls -->
       <div class="flex items-center justify-between px-4 py-3 border-t">
         <div class="flex items-center text-sm text-gray-500">
-          Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredConfigs?.length || 0)} of {filteredConfigs?.length || 0} entries
+          Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(
+            currentPage * rowsPerPage,
+            filteredConfigs?.length || 0
+          )} of {filteredConfigs?.length || 0} entries
         </div>
         <div class="flex items-center gap-2">
           <button
-            class="px-3 py-1 rounded border {currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+            class="px-3 py-1 rounded border {currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'hover:bg-gray-50'}"
             on:click={prevPage}
             disabled={currentPage === 1}
           >
             Previous
           </button>
-          
+
           {#each pageNumbers as pageNum}
             <button
-              class="px-3 py-1 rounded border {currentPage === pageNum ? 'bg-primary text-white' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage === pageNum
+                ? 'bg-primary text-white'
+                : 'hover:bg-gray-50'}"
               on:click={() => goToPage(pageNum)}
             >
               {pageNum}
             </button>
           {/each}
-          
+
           <button
-            class="px-3 py-1 rounded border {currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+            class="px-3 py-1 rounded border {currentPage === totalPages
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'hover:bg-gray-50'}"
             on:click={nextPage}
             disabled={currentPage === totalPages}
           >
@@ -677,7 +790,6 @@
                                     name="selectedMeasurements"
                                     value={measurementType.id}
                                     checked={true}
-    
                                     class="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary pointer-events-none"
                                   />
                                 </div>
