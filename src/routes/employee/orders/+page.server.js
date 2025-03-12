@@ -10,6 +10,12 @@ export const load = async ({ locals }) => {
             .from('measurement_types')
             .select('*');
 
+        // Fetch all courses for filtering
+        const { data: courses } = await supabase
+            .from('courses')
+            .select('*')
+            .order('course_code', { ascending: true });
+
         // Fetch uniform configurations with measurement_specs
         const { data: uniformConfigs } = await supabase
             .from('uniform_configuration')
@@ -57,7 +63,10 @@ export const load = async ({ locals }) => {
             return {
                 id: order.id,
                 studentName: `${student.first_name} ${student.last_name}`,
+                studentFirstName: student.first_name,
+                studentLastName: student.last_name,
                 course: course.course_code,
+                courseId: course.id,
                 uniformType: order.uniform_type,
                 dueDate: order.due_date,
                 status: order.status,
@@ -67,7 +76,7 @@ export const load = async ({ locals }) => {
                 paymentStatus: order.payment_status,
                 createdAt: order.created_at,
                 updatedAt: order.updated_at,
-                completed_at: order.completed_at, // Add this line
+                completed_at: order.completed_at,
                 daysUntilDue: Math.ceil((new Date(order.due_date) - new Date()) / (1000 * 60 * 60 * 24)),
                 uniformConfigs: uniformConfigsForStudent,
                 completedInTime:
@@ -82,7 +91,8 @@ export const load = async ({ locals }) => {
             urgentOrders: formattedOrders.filter(o => o.status === 'in progress' && o.daysUntilDue <= 3),
             inProgressOrders: formattedOrders.filter(o => o.status === 'in progress' && o.daysUntilDue > 3),
             completedOrders: formattedOrders.filter(o => o.status === 'completed'),
-            measurementTypes
+            measurementTypes,
+            courses
         };
     } catch (err) {
         console.error('Error:', err);

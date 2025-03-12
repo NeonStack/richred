@@ -54,7 +54,8 @@
     ?.filter(
       (c) =>
         c.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.student_count.toString().includes(searchTerm)
     )
     ?.sort((a, b) => {
       const modifier = sortState.direction === "asc" ? 1 : -1;
@@ -94,6 +95,14 @@
     showErrorModal = true;
     isLoading = false;
   };
+
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
 
   const handleCreateSubmit = () => {
     let isValid = true;
@@ -262,7 +271,7 @@
   // Add pagination state
   let currentPage = 1;
   let rowsPerPage = 10;
-  
+
   // Calculate total pages and paginated courses
   $: totalPages = Math.ceil((filteredCourses?.length || 0) / rowsPerPage);
   $: paginatedCourses = filteredCourses?.slice(
@@ -289,15 +298,12 @@
   }
 
   // Generate page numbers for pagination
-  $: pageNumbers = Array.from(
-    { length: Math.min(5, totalPages) },
-    (_, i) => {
-      if (totalPages <= 5) return i + 1;
-      if (currentPage <= 3) return i + 1;
-      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
-      return currentPage - 2 + i;
-    }
-  );
+  $: pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (currentPage <= 3) return i + 1;
+    if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+    return currentPage - 2 + i;
+  });
 </script>
 
 <div class="p-6">
@@ -324,9 +330,7 @@
         </div>
         <div>
           <h1 class="text-2xl font-bold text-gray-800">Student Courses</h1>
-          <p class="text-sm text-gray-500">
-            Manage and track student courses
-          </p>
+          <p class="text-sm text-gray-500">Manage and track student courses</p>
         </div>
       </div>
     </div>
@@ -354,42 +358,106 @@
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="bg-gray-50">
-            <th class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100" on:click={() => sort("course_code")}>
+            <th
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+              on:click={() => sort("course_code")}
+            >
               <div class="flex items-center gap-1">
                 Course Code
                 {#if sortField === "course_code"}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 {/if}
               </div>
             </th>
-            <th class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100" on:click={() => sort("description")}>
+            <th
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+              on:click={() => sort("description")}
+            >
               <div class="flex items-center gap-1">
                 Description
                 {#if sortField === "description"}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 {/if}
               </div>
             </th>
-            <th class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100" on:click={() => sort("student_count")}>
+            <th
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+              on:click={() => sort("student_count")}
+            >
               <div class="flex items-center gap-1">
                 No. of Students
                 {#if sortField === "student_count"}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 {/if}
               </div>
             </th>
-            <th class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100" on:click={() => sort("created_at")}>
+            <th
+              class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+              on:click={() => sort("created_at")}
+            >
               <div class="flex items-center gap-1">
                 Created At
                 {#if sortField === "created_at"}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 {sortDirection === 'asc'
+                      ? 'transform rotate-180'
+                      : ''}"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 {/if}
               </div>
@@ -413,27 +481,44 @@
                       type="text"
                       name="course_code"
                       value={course.course_code}
-                      on:input={(e) => validateCourseCode(e.target.value, 0, true)}
+                      on:input={(e) =>
+                        validateCourseCode(e.target.value, 0, true)}
                       on:blur={handleUpdateCourseCodeBlur}
-                      class="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none {editValidationErrors.course_code?.message ? 'border-red-500' : ''}"
+                      class="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none {editValidationErrors
+                        .course_code?.message
+                        ? 'border-red-500'
+                        : ''}"
                       maxlength={COURSE_CODE_MAX_LENGTH}
                       disabled={isLoading}
                       required
                     />
                     {#if editValidationErrors.course_code?.message}
-                      <p class="text-red-500 text-sm mt-1">{editValidationErrors.course_code.message}</p>
+                      <p class="text-red-500 text-sm mt-1">
+                        {editValidationErrors.course_code.message}
+                      </p>
                     {/if}
                     <div class="flex gap-2">
-                      <button type="submit" class="text-blue-600 hover:text-blue-800" disabled={isLoading}>
+                      <button
+                        type="submit"
+                        class="text-blue-600 hover:text-blue-800"
+                        disabled={isLoading}
+                      >
                         Save
                       </button>
-                      <button type="button" on:click={resetForms} class="text-gray-600" disabled={isLoading}>
+                      <button
+                        type="button"
+                        on:click={resetForms}
+                        class="text-gray-600"
+                        disabled={isLoading}
+                      >
                         Cancel
                       </button>
                     </div>
                   </form>
                 {:else}
-                  <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <span
+                    class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  >
                     {course.course_code}
                   </span>
                 {/if}
@@ -443,31 +528,49 @@
                   <textarea
                     name="description"
                     value={course.description || ""}
-                    on:input={(e) => validateDescription(e.target.value, 0, true)}
+                    on:input={(e) =>
+                      validateDescription(e.target.value, 0, true)}
                     on:blur={handleUpdateDescriptionBlur}
-                    class="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none {editValidationErrors.description?.message ? 'border-red-500' : ''}"
+                    class="w-full px-4 py-3 rounded-lg bg-white border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none {editValidationErrors
+                      .description?.message
+                      ? 'border-red-500'
+                      : ''}"
                     maxlength={DESCRIPTION_MAX_LENGTH}
                     disabled={isLoading}
                   ></textarea>
                   {#if editValidationErrors.description?.message}
-                    <p class="text-red-500 text-sm mt-1">{editValidationErrors.description.message}</p>
+                    <p class="text-red-500 text-sm mt-1">
+                      {editValidationErrors.description.message}
+                    </p>
                   {/if}
                 {:else}
                   {course.description || "-"}
                 {/if}
               </td>
               <td class="p-4">
-                <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+                <span
+                  class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
+                >
                   {course.student_count} students
                 </span>
               </td>
-              <td class="p-4">{new Date(course.created_at).toLocaleDateString()}</td>
+              <td class="p-4"
+                >{formatDate(course.created_at)}</td
+              >
               <td class="p-4 text-right">
                 {#if editingId !== course.id}
-                  <button class="text-blue-600 hover:text-blue-800 mr-2" on:click={() => (editingId = course.id)} disabled={isLoading}>
+                  <button
+                    class="text-blue-600 hover:text-blue-800 mr-2"
+                    on:click={() => (editingId = course.id)}
+                    disabled={isLoading}
+                  >
                     Edit
                   </button>
-                  <button class="text-red-600 hover:text-red-800" on:click={() => confirmDelete(course)} disabled={isLoading}>
+                  <button
+                    class="text-red-600 hover:text-red-800"
+                    on:click={() => confirmDelete(course)}
+                    disabled={isLoading}
+                  >
                     Delete
                   </button>
                 {/if}
@@ -477,8 +580,16 @@
             <tr>
               <td colspan="5" class="py-8 text-center text-gray-500">
                 <div class="flex flex-col items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-10 w-10 text-gray-300 mb-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   <p class="text-lg font-medium">No courses found</p>
                   <p class="text-sm">Try adjusting your search</p>
@@ -492,28 +603,37 @@
       <!-- Add Pagination Controls -->
       <div class="flex items-center justify-between px-4 py-3 border-t">
         <div class="flex items-center text-sm text-gray-500">
-          Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredCourses?.length || 0)} of {filteredCourses?.length || 0} entries
+          Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(
+            currentPage * rowsPerPage,
+            filteredCourses?.length || 0
+          )} of {filteredCourses?.length || 0} entries
         </div>
         <div class="flex items-center gap-2">
           <button
-            class="px-3 py-1 rounded border {currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+            class="px-3 py-1 rounded border {currentPage === 1
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'hover:bg-gray-50'}"
             on:click={prevPage}
             disabled={currentPage === 1}
           >
             Previous
           </button>
-          
+
           {#each pageNumbers as pageNum}
             <button
-              class="px-3 py-1 rounded border {currentPage === pageNum ? 'bg-primary text-white' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage === pageNum
+                ? 'bg-primary text-white'
+                : 'hover:bg-gray-50'}"
               on:click={() => goToPage(pageNum)}
             >
               {pageNum}
             </button>
           {/each}
-          
+
           <button
-            class="px-3 py-1 rounded border {currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+            class="px-3 py-1 rounded border {currentPage === totalPages
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'hover:bg-gray-50'}"
             on:click={nextPage}
             disabled={currentPage === totalPages}
           >

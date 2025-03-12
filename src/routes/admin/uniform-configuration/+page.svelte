@@ -28,7 +28,9 @@
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         c.gender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.wear_type?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.wear_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.base_price?.toString().includes(searchTerm) ||
+        c.student_count?.toString().includes(searchTerm)
     )
     ?.sort((a, b) => {
       let aVal = sortField === "course" ? a.courses?.course_code : a[sortField];

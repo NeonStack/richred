@@ -655,8 +655,7 @@
     return qrCanvas.toDataURL();
   }
 
-  // Update the generateReceipt function
-  async function generateReceipt() {
+  async function generatePDF() {
     if (browser) {
       const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
@@ -664,17 +663,61 @@
         filename: `receipt-${orderForReceipt.id}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
-          scale: 4, // Increase scale for better quality
+          scale: 4,
           letterRendering: true,
         },
         jsPDF: {
           unit: "mm",
-          format: [58, 210], // Standard thermal paper width (58mm) and length
+          format: [58, 210],
           orientation: "portrait",
         },
       };
 
       html2pdf().set(opt).from(document.getElementById("receipt")).save();
+    }
+  }
+
+  async function generateReceipt() {
+    if (browser) {
+      try {
+        const html2pdf = (await import("html2pdf.js")).default;
+        const opt = {
+          margin: [0.2, 0.2, 0.2, 0.2],
+          filename: `receipt-${orderForReceipt.id}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 4,
+            letterRendering: true,
+          },
+          jsPDF: {
+            unit: "mm",
+            format: [58, 210],
+            orientation: "portrait",
+          },
+        };
+
+        // Generate PDF blob
+        const pdf = await html2pdf()
+          .set(opt)
+          .from(document.getElementById("receipt"))
+          .outputPdf("blob");
+
+        // Create object URL from blob
+        const pdfUrl = URL.createObjectURL(pdf);
+
+        // Open PDF in a new window
+        const printWindow = window.open(pdfUrl, '_blank');
+        
+        // Wait for the PDF to load and trigger print
+        printWindow.addEventListener('load', () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        });
+      } catch (error) {
+        console.error("Error generating receipt:", error);
+        alert("There was an error generating the receipt. Please try again.");
+      }
     }
   }
 
@@ -1421,10 +1464,16 @@
           Close
         </button>
         <button
+          class="px-4 py-2 border rounded hover:bg-gray-50"
+          on:click={generatePDF}
+        >
+          Download PDF
+        </button>
+        <button
           class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
           on:click={generateReceipt}
         >
-          Download PDF
+          Print Receipt
         </button>
       </div>
     </div>

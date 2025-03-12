@@ -109,6 +109,14 @@
   let modalMode = "create";
   let editingStudent = {};
 
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
   function openCreateModal() {
     modalMode = "create";
     editingStudent = {};
@@ -139,7 +147,10 @@
       student.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.course?.course_code
         ?.toLowerCase()
-        .includes(searchQuery.toLowerCase())
+        .includes(searchQuery.toLowerCase()) ||
+      // Add contact number to search criteria
+      student.contact_number?.includes(searchQuery) ||
+      student.gender?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Add these near your other state variables
@@ -526,7 +537,7 @@
                 </td>
                 <td class="p-4">{student.contact_number || "-"}</td>
                 <td class="p-4"
-                  >{new Date(student.created_at).toLocaleDateString()}</td
+                  >{formatDate(student.created_at)}</td
                 >
                 <td class="p-4 text-right">
                   <button

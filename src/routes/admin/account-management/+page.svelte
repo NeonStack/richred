@@ -193,6 +193,14 @@
     }
   }
 
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
   function validateForm() {
     errors = {};
 
@@ -599,7 +607,7 @@
                 </td>
                 <td class="p-2">{account.position || "-"}</td>
                 <td class="p-2">
-                  {new Date(account.created_at).toLocaleDateString()}
+                  {formatDate(account.created_at)}
                 </td>
                 <td class="p-2 text-right">
                   <button
@@ -776,14 +784,7 @@
                           Account Created
                         </p>
                         <p class="text-sm text-gray-500">
-                          {new Date(
-                            selectedAccount.created_at
-                          ).toLocaleDateString("en-US", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                          {formatDate(selectedAccount.created_at)}
                         </p>
                       </div>
                     </div>

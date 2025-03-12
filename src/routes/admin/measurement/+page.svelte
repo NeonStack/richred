@@ -48,7 +48,7 @@
 
   // Filter and sort measurements
   $: filteredMeasurements = measurements
-    ?.filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ?.filter((m) => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.usage_count.toString().includes(searchTerm))
     ?.sort((a, b) => {
       let comparison = 0;
       if (sortColumn === "name") {
@@ -206,6 +206,15 @@
   const removeMeasurementField = (index) => {
     newMeasurements = newMeasurements.filter((_, i) => i !== index);
   };
+
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
 </script>
 
 <div class="p-6">
@@ -407,7 +416,7 @@
                 </span>
               </td>
               <td class="p-4"
-                >{new Date(measurement.created_at).toLocaleDateString()}</td
+                >{formatDate(measurement.created_at)}</td
               >
               <td class="p-4 text-right">
                 {#if editingId !== measurement.id}

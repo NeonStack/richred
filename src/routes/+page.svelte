@@ -30,7 +30,7 @@
 <div class="min-h-screen bg-gray-50">
   <div class="flex min-h-screen">
     <!-- Left panel with softer background -->
-    <div class="hidden md:flex md:w-1/2 bg-muted relative">
+    <div class="hidden md:flex md:w-[40%] bg-secondary relative">
       <div
         class="relative z-10 flex flex-col justify-center items-center p-12 text-gray-800"
       >
@@ -40,14 +40,14 @@
           class="w-3/4 mb-8"
         />
         <h1 class="text-3xl font-bold mb-4 text-primary">Welcome</h1>
-        <p class="text-lg mb-6 text-center text-gray-700">
+        <p class="text-lg mb-6 text-center text-white">
           Access the Job Order Monitoring System
         </p>
       </div>
     </div>
 
     <!-- Right panel with login form -->
-    <div class="w-full md:w-1/2 flex items-center justify-center p-8">
+    <div class="w-full md:w-[60%] flex items-center justify-center p-8">
       <div class="w-full max-w-md">
         <!-- Mobile-only logo -->
         <div class="flex justify-center mb-8 md:hidden">
@@ -235,11 +235,8 @@
           </form>
 
           <div class="mt-6 text-center text-sm text-gray-500">
-            <p>
-              If you're having trouble logging in, please contact the admin.
-            </p>
-            <p class="mt-4 text-primary text-sm">
-              JOMS v1.0 - Job Order Monitoring System
+            <p class="mt-4 text-primary text-xs">
+              JOMS RichRed Clotheshoppe V1
             </p>
           </div>
         </div>
