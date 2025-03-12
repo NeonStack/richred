@@ -37,7 +37,7 @@
     pending: 1,
     in_progress: 1,
     completed: 1,
-    payments: 1
+    payments: 1,
   };
 
   // Calculate total pages for each tab
@@ -45,7 +45,7 @@
     pending: Math.ceil(pendingOrders.length / rowsPerPage),
     in_progress: Math.ceil(inProgressOrders.length / rowsPerPage),
     completed: Math.ceil(completedOrders.length / rowsPerPage),
-    payments: Math.ceil(sortedOrders.length / rowsPerPage)
+    payments: Math.ceil(sortedOrders.length / rowsPerPage),
   };
 
   // Get paginated orders for each tab
@@ -65,7 +65,7 @@
     payments: sortedOrders.slice(
       (currentPage.payments - 1) * rowsPerPage,
       currentPage.payments * rowsPerPage
-    )
+    ),
   };
 
   // Navigation functions
@@ -85,16 +85,13 @@
   function getPageNumbers(tab) {
     const total = totalPages[tab];
     const current = currentPage[tab];
-    
-    return Array.from(
-      { length: Math.min(5, total) },
-      (_, i) => {
-        if (total <= 5) return i + 1;
-        if (current <= 3) return i + 1;
-        if (current >= total - 2) return total - 4 + i;
-        return current - 2 + i;
-      }
-    );
+
+    return Array.from({ length: Math.min(5, total) }, (_, i) => {
+      if (total <= 5) return i + 1;
+      if (current <= 3) return i + 1;
+      if (current >= total - 2) return total - 4 + i;
+      return current - 2 + i;
+    });
   }
 
   // Reset to first page when filters change
@@ -103,7 +100,7 @@
       pending: 1,
       in_progress: 1,
       completed: 1,
-      payments: 1
+      payments: 1,
     };
   }
 
@@ -598,69 +595,81 @@
   };
 
   async function generateQRCode(order) {
-  // Create a verification code using order details
-  const verificationCode = `RR-${order.id}-${order.student?.last_name?.substring(0,3).toUpperCase()}-${order.amount_paid}`;
-  
-  // Create a more secure content with verification code
-  const htmlContent = `
-RICHRED RECEIPT [${verificationCode}]
------------------------
-Order ID: ${order.id}
-Student: ${order.student?.first_name} ${order.student?.last_name}
-Amount Paid: ₱${order.amount_paid}
-Total Amount: ₱${order.total_amount}
-Payment Date: ${order.payment_date ? new Date(order.payment_date).toLocaleDateString() : 'N/A'}
-Payment Status: ${order.payment_status || 'Not Paid'}
-Updated By: ${order.payment_updated_by || 'N/A'}
-Verification Timestamp: ${new Date().toLocaleString()}
+    const verificationCode = `RR-${order.id}-${order.student?.last_name?.substring(0, 3).toUpperCase()}-${order.amount_paid}`;
+
+    const htmlContent = `
+    RICHRED RECEIPT [${verificationCode}]
+    -----------------------
+    Order ID: ${order.id}
+    Student: ${order.student?.first_name} ${order.student?.last_name}
+    Amount Paid: ₱${order.amount_paid}
+    Total Amount: ₱${order.total_amount}
+    Payment Date: ${order.payment_date ? new Date(order.payment_date).toLocaleDateString() : "N/A"}
+    Payment Status: ${order.payment_status || "Not Paid"}
+    Updated By: ${order.payment_updated_by || "N/A"}
+    Verification Timestamp: ${new Date().toLocaleString()}
   `.trim();
 
-  // Rest of your code remains the same
-  const qrCanvas = document.createElement("canvas");
-  const qrCtx = qrCanvas.getContext("2d");
+    const qrCanvas = document.createElement("canvas");
+    const qrCtx = qrCanvas.getContext("2d");
 
-  // Generate QR code with larger quiet zone
-  const qrCodeData = await QRCode.toCanvas(qrCanvas, htmlContent, {
-    width: 200,
-    margin: 2,
-    color: {
-      dark: "#000",
-      light: "#fff",
-    },
-  });
+    // Generate QR code
+    await QRCode.toCanvas(qrCanvas, htmlContent, {
+      width: 200,
+      margin: 1,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    });
 
-  // Load and draw logo
-  const logo = new Image();
-  logo.src = "/RichRedLogo.png";
-  await new Promise((resolve) => {
-    logo.onload = resolve;
-  });
+    // Load and draw logo in black and white
+    const logo = new Image();
+    logo.src = "/RichRedLogo.png";
+    await new Promise((resolve) => {
+      logo.onload = resolve;
+    });
 
-  // Calculate logo size (30% of QR code)
-  const logoSize = qrCanvas.width * 0.3;
-  const logoPos = (qrCanvas.width - logoSize) / 2;
+    // Convert logo to grayscale
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCanvas.width = logo.width;
+    tempCanvas.height = logo.height;
 
-  // Draw logo in center
-  qrCtx.drawImage(logo, logoPos, logoPos, logoSize, logoSize);
+    tempCtx.drawImage(logo, 0, 0);
+    const imageData = tempCtx.getImageData(0, 0, logo.width, logo.height);
+    const data = imageData.data;
 
-  return qrCanvas.toDataURL();
-}
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      data[i] = data[i + 1] = data[i + 2] = avg;
+    }
 
-  // Update this function
+    tempCtx.putImageData(imageData, 0, 0);
+
+    // Draw grayscale logo
+    const logoSize = qrCanvas.width * 0.3;
+    const logoPos = (qrCanvas.width - logoSize) / 2;
+    qrCtx.drawImage(tempCanvas, logoPos, logoPos, logoSize, logoSize);
+
+    return qrCanvas.toDataURL();
+  }
+
+  // Update the generateReceipt function
   async function generateReceipt() {
     if (browser) {
       const html2pdf = (await import("html2pdf.js")).default;
       const opt = {
-        margin: 1,
+        margin: [0.2, 0.2, 0.2, 0.2],
         filename: `receipt-${orderForReceipt.id}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
-          scale: 2,
-          backgroundColor: "#ffffff",
+          scale: 4, // Increase scale for better quality
+          letterRendering: true,
         },
         jsPDF: {
-          unit: "in",
-          format: "letter",
+          unit: "mm",
+          format: [58, 210], // Standard thermal paper width (58mm) and length
           orientation: "portrait",
         },
       };
@@ -670,27 +679,11 @@ Verification Timestamp: ${new Date().toLocaleString()}
   }
 
   // Add this function to handle receipt modal open
+  // Update handleReceiptModal function
   async function handleReceiptModal(order) {
     orderForReceipt = order;
-    // Generate and set watermark
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = 200;
-    canvas.height = 200;
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "14px Arial";
-    ctx.rotate((-45 * Math.PI) / 180);
-    ctx.fillText("RICHRED CLOTHESHOPPE RECEIPT", -100, 100);
 
-    // Set watermark background
-    setTimeout(() => {
-      const receiptElement = document.getElementById("receipt");
-      if (receiptElement) {
-        receiptElement.style.backgroundImage = `url(${canvas.toDataURL()})`;
-      }
-    }, 0);
-
-    // Generate and set QR code
+    // Only generate and set QR code
     const qrCodeData = await generateQRCode(order);
     setTimeout(() => {
       const qrElement = document.getElementById("qrcode");
@@ -1268,149 +1261,152 @@ Verification Timestamp: ${new Date().toLocaleString()}
   <div
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
   >
-    <div class="bg-white rounded-lg w-[800px] max-h-[90vh] flex flex-col select-none">
+    <div
+      class="bg-white rounded-lg w-[800px] max-h-[90vh] flex flex-col select-none"
+    >
       <div class="flex-1 overflow-y-auto overflow-x-hidden">
         <!-- Receipt Content -->
         <div
           id="receipt"
-          class="p-8 relative pointer-events-none"
-          style="background-repeat: repeat;"
+          class="p-4 relative pointer-events-none bg-white mx-auto"
+          style="width: 216px; margin: 0 auto; font-family: 'Courier New', monospace; font-size: 10px; text-align: center; display: flex; flex-direction: column; align-items: center;"
         >
-          <!-- Add security strip at the top -->
-          <div
-            class="bg-gradient-to-r from-primary to-accent h-4 -mx-8 mb-4"
-          ></div>
-
           <!-- Header -->
-          <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold">RichRed Clotheshoppe</h1>
-            <p>Official Receipt</p>
+          <div class="text-center mb-4">
+            <img src="/RichRedLogo.png" alt="Logo" class="w-14 h-14 mx-auto" />
+            <div class="text-xs mt-1">Official Receipt</div>
+            <div class="my-2">================================</div>
           </div>
 
-          <!-- Add security features -->
-          <div
-            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full aspect-square opacity-10"
-          >
+          <!-- QR Code -->
+          <div class="text-center mb-4">
             <img
-              src="/RichRedLogo.png"
-              alt="Logo"
-              class="w-full h-full object-contain"
+              id="qrcode"
+              alt="Verification QR Code"
+              class="w-20 h-20 mx-auto"
             />
-          </div>
-
-          <!-- Add microcopy security text -->
-          <div
-            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-10 text-[8px] whitespace-nowrap"
-            style="word-spacing: 20px;"
-          >
-            {Array(20).fill("RITCHRED CLOTHESHOPPE OFFICIAL DOCUMENT").join(" ")}
-          </div>
-
-          <!-- Add QR code section -->
-          <div class="absolute top-8 right-8">
-            <img id="qrcode" alt="Verification QR Code" class="w-24 h-24" />
-            <p class="text-xs text-center mt-1">Scan to verify</p>
+            <div class="text-[8px] mt-1">Scan to verify</div>
           </div>
 
           <!-- Receipt Details -->
-          <div class="space-y-4">
-            <div class="flex justify-between">
+          <div class="space-y-1 text-[10px] w-full" style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+            <!-- Basic Info -->
+            <div class="flex justify-between w-full">
+              <div>Receipt No:</div>
+              <div>{orderForReceipt.id}</div>
+            </div>
+            <div class="flex justify-between w-full">
+              <div>Ordered On:</div>
               <div>
-                <p><strong>Receipt No:</strong> {orderForReceipt.id}</p>
-                <p>
-                  <strong>Latest Payment Date:</strong>
-                  {format(
-                    new Date(
-                      orderForReceipt.payment_date || orderForReceipt.created_at
-                    ),
-                    "MMM d, yyyy"
-                  )}
-                </p>
-              </div>
-              <div>
-                <p>
-                  <strong>Status:</strong>
-                  {displayPaymentStatus(orderForReceipt)}
-                </p>
+                {format(
+                  new Date(orderForReceipt.created_at),
+                  "MM/dd/yyyy HH:mm"
+                )}
               </div>
             </div>
+            <div class="flex justify-between w-full">
+              <div>Paid On:</div>
+              <div>
+                {orderForReceipt.payment_date
+                  ? format(
+                      new Date(orderForReceipt.payment_date),
+                      "MM/dd/yyyy HH:mm"
+                    )
+                  : "Not paid"}
+              </div>
+            </div>
+            <div style="text-align: center;">
+              ================================
+            </div>
 
-            <div class="border-t border-b py-4">
-              <h3 class="font-bold mb-2">Customer Information</h3>
-              <p>
-                <strong>Name:</strong>
-                {orderForReceipt.student?.first_name}
+            <!-- Customer Info -->
+            <div class="w-full">
+              <div>
+                Customer: {orderForReceipt.student?.first_name}
                 {orderForReceipt.student?.last_name}
-              </p>
-              <p>
-                <strong>Course:</strong>
-                {orderForReceipt.student?.course?.course_code}
-              </p>
+              </div>
+              <div>Course: {orderForReceipt.student?.course?.course_code}</div>
+              <div>Gender: {orderForReceipt.student?.gender}</div>
+            </div>
+            <div style="text-align: center;">
+              ================================
             </div>
 
-            <div class="border-b py-4">
-              <h3 class="font-bold mb-2">Order Details</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <p>
-                  <strong>Order Type:</strong>
-                  {orderForReceipt.uniform_type}
-                </p>
-                <p><strong>Status:</strong> {orderForReceipt.status}</p>
-                <p>
-                  <strong>Due Date:</strong>
-                  {format(new Date(orderForReceipt.due_date), "MMM d, yyyy")}
-                </p>
-                {#if orderForReceipt.employee}
-                  <p>
-                    <strong>Assigned To:</strong>
-                    {orderForReceipt.employee.first_name}
+            <!-- Order Details -->
+            <div class="w-full">
+              <div class="flex justify-between">
+                <div>Order Type:</div>
+                <div>{orderForReceipt.uniform_type}</div>
+              </div>
+              <div class="flex justify-between">
+                <div>Status:</div>
+                <div>{orderForReceipt.status}</div>
+              </div>
+              <div class="flex justify-between">
+                <div>Due Date:</div>
+                <div>
+                  {format(new Date(orderForReceipt.due_date), "MM/dd/yyyy")}
+                </div>
+              </div>
+            </div>
+            <div style="text-align: center;">
+              ================================
+            </div>
+
+            <!-- Assignment Info -->
+            <div class="w-full">
+              <div class="flex justify-between">
+                <div>Assigned To:</div>
+                <div>
+                  {#if orderForReceipt.employee}
+                    {orderForReceipt.employee.first_name.charAt(0)}.
                     {orderForReceipt.employee.last_name}
-                  </p>
-                {/if}
+                  {:else}
+                    Not assigned
+                  {/if}
+                </div>
+              </div>
+              <div class="flex justify-between">
+                <div>Assigned By:</div>
+                <div>{orderForReceipt.assigned_by || "N/A"}</div>
               </div>
             </div>
-
-            <div class="py-4">
-              <h3 class="font-bold mb-2">Payment Summary</h3>
-              <div class="space-y-2">
-                <div class="flex justify-between">
-                  <span>Total Amount:</span>
-                  <span>₱{orderForReceipt.total_amount}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Amount Paid:</span>
-                  <span>₱{orderForReceipt.amount_paid}</span>
-                </div>
-                <div class="flex justify-between font-bold">
-                  <span>Balance:</span>
-                  <span>₱{orderForReceipt.balance}</span>
-                </div>
-              </div>
+            <div style="text-align: center;">
+              ================================
             </div>
 
-            {#if orderForReceipt.payment_updated_by}
-              <div class="text-sm text-gray-500 mt-8">
-                <p>
-                  Last payment recorded by: {orderForReceipt.payment_updated_by}
-                </p>
+            <!-- Payment Details -->
+            <div class="font-bold w-full">
+              <div class="flex justify-between">
+                <div>Total Amount:</div>
+                <div>&#8369; {orderForReceipt.total_amount}</div>
               </div>
-            {/if}
-          </div>
+              <div class="flex justify-between">
+                <div>Amount Paid:</div>
+                <div>&#8369; {orderForReceipt.amount_paid}</div>
+              </div>
+              <div class="flex justify-between">
+                <div>Balance:</div>
+                <div>&#8369; {orderForReceipt.balance}</div>
+              </div>
+              <div class="flex justify-between">
+                <div>Payment Status:</div>
+                <div>{displayPaymentStatus(orderForReceipt)}</div>
+              </div>
+            </div>
+            <div style="text-align: center;">
+              ================================
+            </div>
 
-          <!-- Add footer with security information -->
-          <div class="mt-8 pt-4 border-t text-xs text-gray-500">
-            <p class="mt-2">
-              This is an official receipt from RichRed Clotheshoppe. Any alterations void this document.
-            </p>
-            <p>
-              Receipt ID: {orderForReceipt.id} • Generated: {new Date().toLocaleString()}
-            </p>
+            <!-- Footer -->
+            <div class="text-center text-[9px] mt-2">
+              <div>
+                Processed by: {orderForReceipt.payment_updated_by || "SYSTEM"}
+              </div>
+              <div class="mt-2">{new Date().toLocaleString()}</div>
+              <div class="mt-2">-------- END OF RECEIPT --------</div>
+            </div>
           </div>
-
-          <!-- Add bottom security strip -->
-          <div
-            class="bg-gradient-to-r from-accent to-primary h-4 -mx-8 mt-4"
-          ></div>
         </div>
       </div>
 
@@ -2018,35 +2014,55 @@ Verification Timestamp: ${new Date().toLocaleString()}
         <div class="flex items-center justify-between px-4 py-3 border-t">
           <div class="flex items-center text-sm text-gray-500">
             {#if activeTab === "payments"}
-              Showing {(currentPage.payments - 1) * rowsPerPage + 1} to {Math.min(currentPage.payments * rowsPerPage, sortedOrders.length)} of {sortedOrders.length} entries
+              Showing {(currentPage.payments - 1) * rowsPerPage + 1} to {Math.min(
+                currentPage.payments * rowsPerPage,
+                sortedOrders.length
+              )} of {sortedOrders.length} entries
             {:else if activeTab === "pending"}
-              Showing {(currentPage.pending - 1) * rowsPerPage + 1} to {Math.min(currentPage.pending * rowsPerPage, pendingOrders.length)} of {pendingOrders.length} entries
+              Showing {(currentPage.pending - 1) * rowsPerPage + 1} to {Math.min(
+                currentPage.pending * rowsPerPage,
+                pendingOrders.length
+              )} of {pendingOrders.length} entries
             {:else if activeTab === "in_progress"}
-              Showing {(currentPage.in_progress - 1) * rowsPerPage + 1} to {Math.min(currentPage.in_progress * rowsPerPage, inProgressOrders.length)} of {inProgressOrders.length} entries
+              Showing {(currentPage.in_progress - 1) * rowsPerPage + 1} to {Math.min(
+                currentPage.in_progress * rowsPerPage,
+                inProgressOrders.length
+              )} of {inProgressOrders.length} entries
             {:else}
-              Showing {(currentPage.completed - 1) * rowsPerPage + 1} to {Math.min(currentPage.completed * rowsPerPage, completedOrders.length)} of {completedOrders.length} entries
+              Showing {(currentPage.completed - 1) * rowsPerPage + 1} to {Math.min(
+                currentPage.completed * rowsPerPage,
+                completedOrders.length
+              )} of {completedOrders.length} entries
             {/if}
           </div>
           <div class="flex items-center gap-2">
             <button
-              class="px-3 py-1 rounded border {currentPage[activeTab] === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage[activeTab] === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'hover:bg-gray-50'}"
               on:click={() => prevPage(activeTab)}
               disabled={currentPage[activeTab] === 1}
             >
               Previous
             </button>
-            
+
             {#each getPageNumbers(activeTab) as pageNum}
               <button
-                class="px-3 py-1 rounded border {currentPage[activeTab] === pageNum ? 'bg-primary text-white' : 'hover:bg-gray-50'}"
+                class="px-3 py-1 rounded border {currentPage[activeTab] ===
+                pageNum
+                  ? 'bg-primary text-white'
+                  : 'hover:bg-gray-50'}"
                 on:click={() => goToPage(activeTab, pageNum)}
               >
                 {pageNum}
               </button>
             {/each}
-            
+
             <button
-              class="px-3 py-1 rounded border {currentPage[activeTab] === totalPages[activeTab] ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+              class="px-3 py-1 rounded border {currentPage[activeTab] ===
+              totalPages[activeTab]
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'hover:bg-gray-50'}"
               on:click={() => nextPage(activeTab)}
               disabled={currentPage[activeTab] === totalPages[activeTab]}
             >
