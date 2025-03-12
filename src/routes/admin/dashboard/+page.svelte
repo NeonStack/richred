@@ -870,8 +870,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-gray-800">JOMS Dashboard</h1>
-          <p class="text-xs text-gray-500">RichRed Clotheshoppe</p>
+          <h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
+          <p class="text-sm text-gray-500">RichRed Clotheshoppe</p>
         </div>
       </div>
 

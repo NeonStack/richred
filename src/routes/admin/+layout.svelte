@@ -136,14 +136,35 @@
       : 'fixed inset-0 z-50 w-[60%] -translate-x-full'} lg:relative lg:block lg:w-64 lg:translate-x-0 bg-primary text-accent-foreground transition-transform duration-300 ease-in-out"
   >
     <div class="sticky top-0 h-screen overflow-y-auto">
-      <div class="p-4 font-bold text-xl">
-        {#if userRole === "admin"}
-          Admin Panel
-        {:else if userRole === "superadmin"}
-          SuperAdmin Panel
-        {:else}
-          JOMS Panel
+      <div class="p-4">
+        {#if $page.data.profile}
+          <div class="mb-4 border-b border-primary-dark pb-3">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="bg-accent border-2 border-white text-white rounded-full w-10 h-10 flex items-center justify-center text-lg font-bold">
+                {$page.data.profile.first_name.charAt(0)}{$page.data.profile.last_name.charAt(0)}
+              </div>
+              <div>
+                <div class="font-medium">
+                  {$page.data.profile.first_name} {$page.data.profile.last_name}
+                </div>
+                {#if $page.data.session?.user?.email}
+                  <div class="text-xs opacity-80 truncate max-w-[180px]">
+                    {$page.data.session.user.email}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </div>
         {/if}
+        <div class="font-bold text-lg">
+          {#if userRole === "admin"}
+            Admin Panel
+          {:else if userRole === "superadmin"}
+            SuperAdmin Panel
+          {:else}
+            JOMS Panel
+          {/if}
+        </div>
       </div>
       <nav>
         <ul>
@@ -250,19 +271,41 @@
   <!-- Content wrapper -->
   <div class="flex-1 flex flex-col lg:relative">
     <!-- Mobile Menu Toggle -->
-    <div
-      class="lg:hidden flex items-center justify-between bg-primary text-accent-foreground p-4 w-full"
-    >
-      <div class="font-bold text-xl">
-        {#if userRole === "admin"}
-          Admin Panel
-        {:else if userRole === "superadmin"}
-          SuperAdmin Panel
-        {:else}
-          JOMS Panel
-        {/if}
+    <div class="lg:hidden flex items-center justify-between bg-primary text-accent-foreground p-4 w-full">
+      <div>
+        <div class="font-bold text-lg flex items-center gap-2">
+          {#if $page.data.profile}
+            <div class="bg-accent text-white rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold">
+              {$page.data.profile.first_name.charAt(0)}{$page.data.profile.last_name.charAt(0)}
+            </div>
+          {/if}
+          <div>
+            {#if userRole === "admin"}
+              Admin Panel
+            {:else if userRole === "superadmin"}
+              SuperAdmin Panel
+            {:else}
+              JOMS Panel
+            {/if}
+            {#if $page.data.profile}
+              <div class="text-xs opacity-80">
+                {$page.data.profile.first_name} {$page.data.profile.last_name}
+                {#if $page.data.session?.user?.email}
+                  <span class="hidden xs:inline"> • {$page.data.session.user.email}</span>
+                {/if}
+              </div>
+            {/if}
+          </div>
+        </div>
       </div>
-      <button on:click={() => (showSidebar = !showSidebar)}> ☰ </button>
+      <button 
+        class="p-2 rounded hover:bg-primary-dark transition-colors"
+        on:click={() => (showSidebar = !showSidebar)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M3 18h18v-2H3zm0-5h18v-2H3zm0-5h18V6H3z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Scrollable content area -->

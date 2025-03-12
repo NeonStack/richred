@@ -9,6 +9,7 @@
   let metrics = {};
   let selectedStatus = "all";
   let searchQuery = "";
+  let filtersExpanded = true;
 
   // Add sorting state
   let sortState = {
@@ -433,7 +434,7 @@
   $: filteredOrders = sortedOrders?.filter((order) => {
     const orderDate = new Date(order.created_at).setHours(0, 0, 0, 0);
     const dueDate = new Date(order.due_date).setHours(0, 0, 0, 0);
-    const completedDate = order.completed_at 
+    const completedDate = order.completed_at
       ? new Date(order.completed_at).setHours(0, 0, 0, 0)
       : null;
 
@@ -449,13 +450,16 @@
       (!dueDateRange.end ||
         dueDate <= new Date(dueDateRange.end).setHours(23, 59, 59, 999));
 
-    const inCompletedDateRange = 
-      !completedDateRange.start && !completedDateRange.end ? true :
-      completedDate && 
-      (!completedDateRange.start || 
-        completedDate >= new Date(completedDateRange.start).setHours(0, 0, 0, 0)) &&
-      (!completedDateRange.end || 
-        completedDate <= new Date(completedDateRange.end).setHours(23, 59, 59, 999));
+    const inCompletedDateRange =
+      !completedDateRange.start && !completedDateRange.end
+        ? true
+        : completedDate &&
+          (!completedDateRange.start ||
+            completedDate >=
+              new Date(completedDateRange.start).setHours(0, 0, 0, 0)) &&
+          (!completedDateRange.end ||
+            completedDate <=
+              new Date(completedDateRange.end).setHours(23, 59, 59, 999));
 
     const searchTerms = searchQuery.toLowerCase().trim();
 
@@ -485,7 +489,13 @@
 
     const matchesStatus =
       selectedStatus === "all" || order.status === selectedStatus;
-    return inOrderDateRange && inDueDateRange && inCompletedDateRange && matchesSearch && matchesStatus;
+    return (
+      inOrderDateRange &&
+      inDueDateRange &&
+      inCompletedDateRange &&
+      matchesSearch &&
+      matchesStatus
+    );
   });
 
   function getStatusDetails(order) {
@@ -900,7 +910,7 @@
   // Add pagination state
   let currentPage = 1;
   let rowsPerPage = 10;
-  
+
   // Calculate total pages and paginated orders
   $: totalPages = Math.ceil((filteredOrders?.length || 0) / rowsPerPage);
   $: paginatedOrders = filteredOrders?.slice(
@@ -922,20 +932,24 @@
   }
 
   // Reset to first page when filters change
-  $: if (searchQuery || selectedEmployee || selectedStatus || orderDateRange || dueDateRange || completedDateRange) {
+  $: if (
+    searchQuery ||
+    selectedEmployee ||
+    selectedStatus ||
+    orderDateRange ||
+    dueDateRange ||
+    completedDateRange
+  ) {
     currentPage = 1;
   }
 
   // Generate page numbers for pagination
-  $: pageNumbers = Array.from(
-    { length: Math.min(5, totalPages) },
-    (_, i) => {
-      if (totalPages <= 5) return i + 1;
-      if (currentPage <= 3) return i + 1;
-      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
-      return currentPage - 2 + i;
-    }
-  );
+  $: pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (currentPage <= 3) return i + 1;
+    if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+    return currentPage - 2 + i;
+  });
 </script>
 
 <div class="p-6 space-y-6">
@@ -985,298 +999,591 @@
   </div>
 
   {#if activeTab === "overview"}
-    <!-- Existing Overview Content -->
-    <!-- Replace the Filters Card section -->
-    <div class="bg-white p-4 rounded-lg shadow-md">
-      <div class="flex flex-col gap-4 w-full">
-        <!-- Order Date Range -->
-        <div class="w-full">
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Order Date Range</label
-          >
-          <div class="flex flex-col sm:flex-row items-center gap-2">
-            <input
-              type="date"
-              id="order-date-start"
-              bind:value={orderDateRange.start}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
-            <span class="text-gray-400">to</span>
-            <input
-              type="date"
-              id="order-date-end"
-              bind:value={orderDateRange.end}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
+    <div class="space-y-6">
+      <!-- Top Section: Filters in a collapsible panel -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div
+          class="bg-gray-50 px-4 py-3 border-b flex justify-between items-center cursor-pointer"
+          on:click={() => (filtersExpanded = !filtersExpanded)}
+        >
+          <div class="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5 text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            <h3 class="font-medium">Filter Options</h3>
           </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-gray-500 transform transition-transform {filtersExpanded
+              ? 'rotate-180'
+              : ''}"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
         </div>
 
-        <!-- Due Date Range -->
-        <div class="w-full">
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Due Date Range</label
-          >
-          <div class="flex flex-col sm:flex-row items-center gap-2">
-            <input
-              type="date"
-              id="due-date-start"
-              bind:value={dueDateRange.start}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
-            <span class="text-gray-400">to</span>
-            <input
-              type="date"
-              id="due-date-end"
-              bind:value={dueDateRange.end}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
+        {#if filtersExpanded}
+          <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Date Range Column -->
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Order Date Range</label
+                  >
+                  <div class="flex flex-row items-center gap-2">
+                    <input
+                      type="date"
+                      id="order-date-start"
+                      bind:value={orderDateRange.start}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                    <span class="text-gray-400">to</span>
+                    <input
+                      type="date"
+                      id="order-date-end"
+                      bind:value={orderDateRange.end}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Due Date Column -->
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Due Date Range</label
+                  >
+                  <div class="flex flex-row items-center gap-2">
+                    <input
+                      type="date"
+                      id="due-date-start"
+                      bind:value={dueDateRange.start}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                    <span class="text-gray-400">to</span>
+                    <input
+                      type="date"
+                      id="due-date-end"
+                      bind:value={dueDateRange.end}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Completed Date Column -->
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Completed Date Range</label
+                  >
+                  <div class="flex flex-row items-center gap-2">
+                    <input
+                      type="date"
+                      id="completed-date-start"
+                      bind:value={completedDateRange.start}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                    <span class="text-gray-400">to</span>
+                    <input
+                      type="date"
+                      id="completed-date-end"
+                      bind:value={completedDateRange.end}
+                      on:change={validateDateRanges}
+                      class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Row Filters -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+              <select
+                bind:value={selectedEmployee}
+                class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+              >
+                <option value="all">All Tailors</option>
+                {#each data.employees as employee}
+                  <option value={employee.id}>
+                    {formatName(employee.first_name, employee.last_name)}
+                  </option>
+                {/each}
+              </select>
+
+              <select
+                bind:value={selectedStatus}
+                class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="in progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+
+              <button
+                on:click={clearFilters}
+                class="w-full px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Clear All Filters
+              </button>
+            </div>
           </div>
-        </div>
-
-        <!-- Add this after the Due Date Range input in the filters section -->
-        <div class="w-full">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Completed Date Range</label>
-          <div class="flex flex-col sm:flex-row items-center gap-2">
-            <input
-              type="date"
-              id="completed-date-start"
-              bind:value={completedDateRange.start}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
-            <span class="text-gray-400">to</span>
-            <input
-              type="date"
-              id="completed-date-end"
-              bind:value={completedDateRange.end}
-              on:change={validateDateRanges}
-              class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-            />
-          </div>
-        </div>
-
-        <!-- Filters Row -->
-        <div class="flex flex-col sm:flex-row gap-4">
-          <select
-            bind:value={selectedEmployee}
-            class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-          >
-            <option value="all">All Tailors</option>
-            {#each data.employees as employee}
-              <option value={employee.id}>
-                {formatName(employee.first_name, employee.last_name)}
-              </option>
-            {/each}
-          </select>
-
-          <select
-            bind:value={selectedStatus}
-            class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-sm"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="in progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-
-          <button
-            on:click={clearFilters}
-            class="w-full px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
-          >
-            Clear All
-          </button>
-        </div>
+        {/if}
       </div>
-    </div>
 
-    <!-- Replace the Orders Table and Metrics Cards sections with this new layout -->
-    <div class="space-y-4">
-      <!-- Top row: Key Metrics Overview -->
+      <!-- Key Metrics Section -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <!-- Quick Stats -->
         <div
-          class="bg-white p-4 rounded-lg shadow-md border-2 border-primary/10 hover:border-primary/20 transition-all"
+          class="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary hover:shadow-lg transition-all"
         >
-          <div class="text-lg font-semibold text-gray-900">
-            {metrics.totalOrders}
-          </div>
-          <div class="text-sm text-gray-500">Total Orders</div>
-        </div>
-        <div
-          class="bg-white p-4 rounded-lg shadow-md border-2 border-green-100 hover:border-green-200 transition-all"
-        >
-          <div class="text-lg font-semibold text-green-600">
-            {metrics.completedOrders}
-          </div>
-          <div class="text-sm text-gray-500">Completed Orders</div>
-        </div>
-        <div
-          class="bg-white p-4 rounded-lg shadow-md border-2 border-red-100 hover:border-red-200 transition-all"
-        >
-          <div class="text-lg font-semibold text-red-600">
-            {metrics.lateOrders}
-          </div>
-          <div class="text-sm text-gray-500">Late Orders</div>
-        </div>
-        <div
-          class="bg-white p-4 rounded-lg shadow-md border-2 border-primary/10 hover:border-primary/20 transition-all"
-        >
-          <div class="text-lg font-semibold text-primary">
-            {metrics.efficiencyRate}%
-          </div>
-          <div class="text-sm text-gray-500">On-Time Rate</div>
-        </div>
-      </div>
-
-      <!-- Middle row: Employee Performance and Analysis -->
-      <div class="grid grid-cols-2 gap-4">
-        <!-- Time Analysis and Workload Cards -->
-        <div class="space-y-4 col-span-2">
-          <!-- Time Analysis -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div
-              class="bg-white p-4 rounded-lg shadow-md border-2 border-blue-100 hover:border-blue-200 transition-all"
-            >
-              <h3 class="text-sm font-semibold text-gray-800 mb-3">
-                Completion Times
-              </h3>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-gray-600">Fastest</span>
-                  <span class="font-semibold text-green-600"
-                    >{metrics.fastestCompletion}d</span
-                  >
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-gray-600">Average</span>
-                  <span class="font-semibold text-blue-600"
-                    >{metrics.averageCompletionTime}d</span
-                  >
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-gray-600">Slowest</span>
-                  <span class="font-semibold text-red-600"
-                    >{metrics.slowestCompletion}d</span
-                  >
-                </div>
-              </div>
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-gray-500">Total Orders</p>
+              <h3 class="text-2xl font-bold">{metrics.totalOrders}</h3>
             </div>
-
-            <!-- Workload Distribution -->
-            <div
-              class="bg-white p-4 rounded-lg shadow-md border-2 border-purple-100 hover:border-purple-200 transition-all"
-            >
-              <h3 class="text-sm font-semibold text-gray-800 mb-3">
-                Weekly Distribution
-              </h3>
-              <div class="space-y-2">
-                {#each Object.entries(metrics.workloadDistribution || {}) as [day, count]}
-                  <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">{day}</span>
-                    <span class="font-semibold">{count}</span>
-                  </div>
-                {/each}
-              </div>
+            <div class="p-3 bg-primary/10 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
             </div>
-            <!-- Uniform Type Analysis -->
-            <div
-              class="bg-white p-4 rounded-lg shadow-md border-2 border-emerald-100 hover:border-emerald-200 transition-all"
-            >
-              <h3 class="text-sm font-semibold text-gray-800 mb-3">
-                Uniform Type Analysis
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500 hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-gray-500">Completed</p>
+              <h3 class="text-2xl font-bold text-green-600">
+                {metrics.completedOrders}
               </h3>
-              <div class="grid grid-cols-3 gap-4">
-                {#each ["upper", "lower", "both"] as type}
-                  <div class="p-3 bg-gray-50 rounded-lg">
-                    <div class="text-sm font-medium capitalize">{type}</div>
-                    <div class="text-lg font-semibold text-blue-600">
-                      {metrics.averageTimePerUniform?.[type] || "0"}d
-                    </div>
-                    <div class="text-xs text-gray-500">avg. completion</div>
-                  </div>
-                {/each}
-              </div>
+            </div>
+            <div class="p-3 bg-green-100 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500 hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-gray-500">Late Orders</p>
+              <h3 class="text-2xl font-bold text-red-600">
+                {metrics.lateOrders}
+              </h3>
+            </div>
+            <div class="p-3 bg-red-100 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500 hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <p class="text-sm font-medium text-gray-500">On-Time Rate</p>
+              <h3 class="text-2xl font-bold text-blue-600">
+                {metrics.efficiencyRate}%
+              </h3>
+            </div>
+            <div class="p-3 bg-blue-100 rounded-full">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-blue-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Bottom row: Orders Table -->
-      <div class="bg-white rounded-lg shadow-md border-2 border-gray-100">
-        <div class="p-4 border-b">
+      <!-- Analysis Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Completion Times -->
+        <div
+          class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 bg-blue-50 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-blue-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">
+              Completion Times
+            </h3>
+          </div>
+
+          <div class="space-y-3 mt-4">
+            <div
+              class="flex justify-between items-center p-3 bg-green-50 rounded-lg"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-8 bg-green-500 rounded-full"></div>
+                <span class="font-medium">Fastest</span>
+              </div>
+              <span class="text-lg font-bold text-green-600"
+                >{metrics.fastestCompletion}d</span
+              >
+            </div>
+
+            <div
+              class="flex justify-between items-center p-3 bg-blue-50 rounded-lg"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-8 bg-blue-500 rounded-full"></div>
+                <span class="font-medium">Average</span>
+              </div>
+              <span class="text-lg font-bold text-blue-600"
+                >{metrics.averageCompletionTime}d</span
+              >
+            </div>
+
+            <div
+              class="flex justify-between items-center p-3 bg-red-50 rounded-lg"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-8 bg-red-500 rounded-full"></div>
+                <span class="font-medium">Slowest</span>
+              </div>
+              <span class="text-lg font-bold text-red-600"
+                >{metrics.slowestCompletion}d</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Distribution -->
+        <div
+          class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 bg-purple-50 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-purple-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">
+              Weekly Distribution
+            </h3>
+          </div>
+
+          <div class="mt-2 space-y-2">
+            {#each Object.entries(metrics.workloadDistribution || {}) as [day, count]}
+              <div class="flex items-center gap-2">
+                <div class="text-sm text-gray-600 w-24">{day}</div>
+                <div
+                  class="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-purple-500 h-full rounded-full"
+                    style="width: {Math.min(100, count * 10)}%"
+                  ></div>
+                </div>
+                <div class="text-sm font-semibold text-purple-700">{count}</div>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Uniform Type Analysis -->
+        <div
+          class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="p-2 bg-emerald-50 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">
+              Uniform Type Analysis
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            {#each ["upper", "lower", "both"] as type}
+              <div
+                class="p-4 rounded-lg text-center {type === 'upper'
+                  ? 'bg-blue-50'
+                  : type === 'lower'
+                    ? 'bg-green-50'
+                    : 'bg-amber-50'}"
+              >
+                <div class="font-medium capitalize mb-1">{type}</div>
+                <div
+                  class="text-xl font-bold {type === 'upper'
+                    ? 'text-blue-600'
+                    : type === 'lower'
+                      ? 'text-green-600'
+                      : 'text-amber-600'}"
+                >
+                  {metrics.averageTimePerUniform?.[type] || "0"}d
+                </div>
+                <div class="text-xs text-gray-500 mt-1">avg. completion</div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Table Section -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-4 border-b bg-gray-50">
           <div
             class="flex flex-col sm:flex-row gap-4 justify-between items-center"
           >
-            <h2 class="text-lg font-semibold">Order Details</h2>
-            <input
-              type="text"
-              bind:value={searchQuery}
-              placeholder="Search orders..."
-              class="w-full sm:w-64 px-4 py-2 border rounded-lg"
-            />
+            <div class="flex items-center gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <h2 class="text-lg font-semibold">Order Details</h2>
+            </div>
+            <div class="relative w-full sm:w-64">
+              <input
+                type="text"
+                bind:value={searchQuery}
+                placeholder="Search orders..."
+                class="w-full pl-10 pr-4 py-2 border rounded-lg"
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
         </div>
-        <!-- Replace the existing table section with this updated version -->
+
         <div class="overflow-x-auto">
           <table class="w-full min-w-[800px]">
-            <!-- Added min-width to prevent squishing -->
             <thead>
-              <tr class="bg-muted max-md:whitespace-nowrap">
+              <tr class="bg-gray-50">
                 <th
-                  class="p-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                  class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                   on:click={() => toggleSort("created_at")}
                 >
-                  Order Date {#if sortState.column === "created_at"}
-                    <span class="ml-1"
-                      >{sortState.direction === "asc" ? "↑" : "↓"}</span
-                    >
-                  {/if}
+                  <div class="flex items-center gap-1">
+                    Order Date
+                    {#if sortState.column === "created_at"}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 {sortState.direction === 'asc'
+                          ? 'transform rotate-180'
+                          : ''}"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    {/if}
+                  </div>
                 </th>
                 <th
-                  class="p-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                  class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                   on:click={() => toggleSort("due_date")}
                 >
-                  Due Date {#if sortState.column === "due_date"}
-                    <span class="ml-1"
-                      >{sortState.direction === "asc" ? "↑" : "↓"}</span
-                    >
-                  {/if}
+                  <div class="flex items-center gap-1">
+                    Due Date
+                    {#if sortState.column === "due_date"}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 {sortState.direction === 'asc'
+                          ? 'transform rotate-180'
+                          : ''}"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    {/if}
+                  </div>
                 </th>
                 <th
-                  class="p-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                  class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                   on:click={() => toggleSort("student")}
                 >
-                  Student Details {#if sortState.column === "student"}
-                    <span class="ml-1"
-                      >{sortState.direction === "asc" ? "↑" : "↓"}</span
-                    >
-                  {/if}
+                  <div class="flex items-center gap-1">
+                    Student Details
+                    {#if sortState.column === "student"}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 {sortState.direction === 'asc'
+                          ? 'transform rotate-180'
+                          : ''}"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    {/if}
+                  </div>
                 </th>
                 <th
-                  class="p-3 text-left font-semibold cursor-pointer hover:bg-gray-100"
+                  class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                   on:click={() => toggleSort("employee")}
                 >
-                  Assigned Tailor {#if sortState.column === "employee"}
-                    <span class="ml-1"
-                      >{sortState.direction === "asc" ? "↑" : "↓"}</span
-                    >
-                  {/if}
+                  <div class="flex items-center gap-1">
+                    Assigned Tailor
+                    {#if sortState.column === "employee"}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 {sortState.direction === 'asc'
+                          ? 'transform rotate-180'
+                          : ''}"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    {/if}
+                  </div>
                 </th>
-                <th class="p-3 text-left font-semibold">
-                  Days to Complete / Estimated
+                <th class="p-4 text-left font-semibold text-gray-600">
+                  Completion Time
                 </th>
-                <th class="p-3 text-left font-semibold">Order Status</th>
+                <th class="p-4 text-left font-semibold text-gray-600">
+                  Status
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y divide-gray-100">
               {#each paginatedOrders as order}
                 {@const workInfo = calculateWorkDuration(order)}
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="p-3">
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="p-4">
                     <div class="space-y-1">
                       <div class="font-medium">
                         {formatDate(order.created_at)}
@@ -1284,7 +1591,7 @@
                       <div class="text-xs text-gray-500">Order #{order.id}</div>
                     </div>
                   </td>
-                  <td class="p-3">
+                  <td class="p-4">
                     <div class="space-y-1">
                       <div class="font-medium">
                         {formatDate(order.due_date)}
@@ -1296,7 +1603,7 @@
                       {/if}
                     </div>
                   </td>
-                  <td class="p-3">
+                  <td class="p-4">
                     <div class="space-y-1">
                       <div class="font-medium">
                         {formatName(
@@ -1305,71 +1612,89 @@
                         )}
                       </div>
                       <div class="text-xs text-gray-500">
-                        {order.student?.course?.course_code || "No course"} -
-                        <span class="capitalize">{order.uniform_type}</span>
+                        <span
+                          class="px-2 py-0.5 bg-gray-100 rounded text-gray-700"
+                          >{order.student?.course?.course_code ||
+                            "No course"}</span
+                        >
+                        <span class="ml-1 capitalize">{order.uniform_type}</span
+                        >
                       </div>
                     </div>
                   </td>
-                  <td class="p-3">
+                  <td class="p-4">
                     {#if order.employee}
-                      <div class="font-medium">
-                        {formatName(
-                          order.employee.first_name,
-                          order.employee.last_name
-                        )}
+                      <div class="inline-flex items-center gap-2">
+                        <div
+                          class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary font-medium"
+                        >
+                          {order.employee.first_name.charAt(
+                            0
+                          )}{order.employee.last_name.charAt(0)}
+                        </div>
+                        <div class="font-medium">
+                          {formatName(
+                            order.employee.first_name,
+                            order.employee.last_name
+                          )}
+                        </div>
                       </div>
                     {:else}
-                      <div class="text-gray-500">Unassigned</div>
+                      <div class="flex items-center">
+                        <span
+                          class="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
+                          >Unassigned</span
+                        >
+                      </div>
                     {/if}
                   </td>
-                  <td class="p-3">
+                  <td class="p-4">
                     {#if order.status === "completed"}
                       {#if order.completed_at}
                         {@const days =
                           (new Date(order.completed_at) -
                             new Date(order.created_at)) /
                           (1000 * 60 * 60 * 24)}
-                        <div class="text-sm">
-                          <span class="font-medium">{days.toFixed(1)} days</span
-                          >
+                        <div
+                          class="text-sm font-medium px-3 py-1 bg-green-50 rounded-full inline-flex items-center text-green-600"
+                        >
+                          {days.toFixed(1)} days
                         </div>
                       {/if}
                     {:else if metrics.predictedCompletions[order.id]}
-                      <div class="text-sm">
-                        <span class="text-gray-600"
-                          >Est. {metrics.predictedCompletions[order.id].days} days</span
+                      <div>
+                        <div
+                          class="text-sm font-medium px-3 py-1 bg-blue-50 rounded-full inline-flex items-center text-blue-600"
                         >
-                        <span class="text-xs text-gray-400 block">
+                          Est. {metrics.predictedCompletions[order.id].days} days
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
                           Based on {order.status === "pending"
                             ? "general"
                             : `${order.employee.first_name}'s`}
-                          {order.uniform_type} wear average
-                        </span>
+                          {order.uniform_type} average
+                        </div>
                       </div>
                     {:else}
-                      <div class="text-sm text-gray-400">
-                        No data to estimate
-                      </div>
+                      <div class="text-sm text-gray-400">No data available</div>
                     {/if}
                   </td>
-                  <td class="p-3">
+                  <td class="p-4">
                     {#if order}
                       {@const status = getStatusDetails(order)}
                       <div class="space-y-1">
-                        <span
-                          class={`px-2 py-1 text-xs font-medium rounded-full
-                                                ${
-                                                  status.mainStatus ===
-                                                  "completed"
-                                                    ? "bg-green-100 text-green-800"
-                                                    : status.mainStatus ===
-                                                        "in progress"
-                                                      ? "bg-blue-100 text-blue-800"
-                                                      : "bg-gray-100 text-gray-800"
-                                                }`}
+                        <div
+                          class={`px-3 py-1 text-xs font-medium rounded-full inline-block
+                            ${
+                              status.mainStatus === "completed"
+                                ? "bg-green-100 text-green-800"
+                                : status.mainStatus === "in progress"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                            }`}
                         >
                           {status.mainStatus}
-                        </span>
+                        </div>
                         <div class={`text-xs ${status.statusClass}`}>
                           {status.statusMessage}
                         </div>
@@ -1377,35 +1702,64 @@
                     {/if}
                   </td>
                 </tr>
+              {:else}
+                <tr>
+                  <td colspan="6" class="py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-10 w-10 text-gray-300 mb-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <p class="text-lg font-medium">No orders found</p>
+                      <p class="text-sm">Try adjusting your filters</p>
+                    </div>
+                  </td>
+                </tr>
               {/each}
             </tbody>
           </table>
-          
+
           <!-- Pagination Controls -->
           <div class="flex items-center justify-between px-4 py-3 border-t">
             <div class="flex items-center text-sm text-gray-500">
-              Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredOrders?.length || 0)} of {filteredOrders?.length || 0} entries
+              Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(
+                currentPage * rowsPerPage,
+                filteredOrders?.length || 0
+              )} of {filteredOrders?.length || 0} entries
             </div>
             <div class="flex items-center gap-2">
               <button
-                class="px-3 py-1 rounded border {currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+                class="px-3 py-1 rounded border {currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-50'}"
                 on:click={prevPage}
                 disabled={currentPage === 1}
               >
                 Previous
               </button>
-              
+
               {#each pageNumbers as pageNum}
                 <button
-                  class="px-3 py-1 rounded border {currentPage === pageNum ? 'bg-primary text-white' : 'hover:bg-gray-50'}"
+                  class="px-3 py-1 rounded border {currentPage === pageNum
+                    ? 'bg-primary text-white'
+                    : 'hover:bg-gray-50'}"
                   on:click={() => goToPage(pageNum)}
                 >
                   {pageNum}
                 </button>
               {/each}
-              
+
               <button
-                class="px-3 py-1 rounded border {currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}"
+                class="px-3 py-1 rounded border {currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'hover:bg-gray-50'}"
                 on:click={nextPage}
                 disabled={currentPage === totalPages}
               >

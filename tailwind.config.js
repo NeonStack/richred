@@ -5,20 +5,20 @@ module.exports = {
     extend: {
       colors: {
         background: "#ffffff",
-        foreground: "#1a202c",
+        foreground: "#000000",  // Changed to pure black
         primary: {
-          DEFAULT: "#e63946", // Softer red
-          dark: "#c1121f", // Darker but not harsh
+          DEFAULT: "#c41230", // Rich red
+          dark: "#8c0e22", // Darker rich red
         },
-        secondary: "#457b9d", // Complementary blue tone
-        muted: "#f1faee", // Very light background
+        secondary: "#222222", // Dark gray, almost black
+        muted: "#f5f5f5", // Light background that works with red/black
         accent: {
-          DEFAULT: "#e63946", // Same as primary for consistency
-          hover: "#c1121f", // Same as primary-dark
+          DEFAULT: "#c41230", // Same rich red as primary
+          hover: "#8c0e22", // Same as primary-dark
         },
         "accent-foreground": "#ffffff",
-        input: "#f1faee", // Very light background
-        border: "#a8dadc", // Light blue-ish border
+        input: "#f5f5f5", // Light background matching muted
+        border: "#dddddd", // Neutral light border
         success: {
           light: '#E6F4EA',
           DEFAULT: '#34A853',

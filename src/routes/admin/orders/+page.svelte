@@ -598,46 +598,53 @@
   };
 
   async function generateQRCode(order) {
-    const qrData = {
-      id: order.id,
-      student: `${order.student?.first_name} ${order.student?.last_name}`,
-      amount_paid: order.amount_paid,
-      total_amount: order.total_amount,
-      payment_date: order.payment_date,
-      payment_status: order.payment_status,
-      payment_updated_by: order.payment_updated_by,
-      timestamp: new Date().toISOString(),
-    };
+  // Create a verification code using order details
+  const verificationCode = `RR-${order.id}-${order.student?.last_name?.substring(0,3).toUpperCase()}-${order.amount_paid}`;
+  
+  // Create a more secure content with verification code
+  const htmlContent = `
+RICHRED RECEIPT [${verificationCode}]
+-----------------------
+Order ID: ${order.id}
+Student: ${order.student?.first_name} ${order.student?.last_name}
+Amount Paid: ₱${order.amount_paid}
+Total Amount: ₱${order.total_amount}
+Payment Date: ${order.payment_date ? new Date(order.payment_date).toLocaleDateString() : 'N/A'}
+Payment Status: ${order.payment_status || 'Not Paid'}
+Updated By: ${order.payment_updated_by || 'N/A'}
+Verification Timestamp: ${new Date().toLocaleString()}
+  `.trim();
 
-    const qrCanvas = document.createElement("canvas");
-    const qrCtx = qrCanvas.getContext("2d");
+  // Rest of your code remains the same
+  const qrCanvas = document.createElement("canvas");
+  const qrCtx = qrCanvas.getContext("2d");
 
-    // Generate QR code with larger quiet zone
-    const qrCodeData = await QRCode.toCanvas(qrCanvas, JSON.stringify(qrData), {
-      width: 200,
-      margin: 2,
-      color: {
-        dark: "#000",
-        light: "#fff",
-      },
-    });
+  // Generate QR code with larger quiet zone
+  const qrCodeData = await QRCode.toCanvas(qrCanvas, htmlContent, {
+    width: 200,
+    margin: 2,
+    color: {
+      dark: "#000",
+      light: "#fff",
+    },
+  });
 
-    // Load and draw logo
-    const logo = new Image();
-    logo.src = "/RichRedLogo.png";
-    await new Promise((resolve) => {
-      logo.onload = resolve;
-    });
+  // Load and draw logo
+  const logo = new Image();
+  logo.src = "/RichRedLogo.png";
+  await new Promise((resolve) => {
+    logo.onload = resolve;
+  });
 
-    // Calculate logo size (30% of QR code)
-    const logoSize = qrCanvas.width * 0.3;
-    const logoPos = (qrCanvas.width - logoSize) / 2;
+  // Calculate logo size (30% of QR code)
+  const logoSize = qrCanvas.width * 0.3;
+  const logoPos = (qrCanvas.width - logoSize) / 2;
 
-    // Draw logo in center
-    qrCtx.drawImage(logo, logoPos, logoPos, logoSize, logoSize);
+  // Draw logo in center
+  qrCtx.drawImage(logo, logoPos, logoPos, logoSize, logoSize);
 
-    return qrCanvas.toDataURL();
-  }
+  return qrCanvas.toDataURL();
+}
 
   // Update this function
   async function generateReceipt() {

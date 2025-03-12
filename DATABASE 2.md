@@ -1,102 +1,108 @@
--- Changed timezone to Asia Singapore (Philippines time)
-alter database postgres
-set timezone to 'Asia/Singapore';
 
--- Enable UUID extension
-create extension if not exists "uuid-ossp";
-
--- Create a profile table
-create table profiles (
-id uuid references auth.users not null primary key,
-first_name text not null,
-last_name text not null,
-role text not null check (role in ('superadmin', 'admin', 'employee')),
-contact_number text,
-address text,
-position text,
-created_at timestamptz default now() not null
+-- CHECKKKKKKKKKKKKKKKKKKKKKKKKKKK
+CREATE TABLE admin_permissions (
+  id bigint primary key generated always as identity,
+  admin_id uuid NULL,
+  route_path text NOT NULL,
+  is_permitted boolean NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT admin_permissions_admin_id_route_path_key UNIQUE (admin_id, route_path),
+  CONSTRAINT admin_permissions_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES profiles(id)
 );
+CREATE INDEX IF NOT EXISTS idx_admin_permissions_admin_id ON admin_permissions(admin_id);
 
-create table measurement_types (
-id serial primary key,
-name text not null,
-created_at timestamptz default now() not null,
-unique(name)
+--CHECK
+CREATE TABLE courses (
+  id bigint primary key generated always as identity,
+  course_code text NOT NULL,
+  description text NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT courses_course_code_key UNIQUE (course_code)
 );
+CREATE INDEX IF NOT EXISTS idx_courses_course_code ON courses(course_code);
 
-create table courses (
-id serial primary key,
-course_code text not null,
-description text,
-created_at timestamptz default now() not null,
-unique(course_code)
+--CHECK
+CREATE TABLE measurement_types (
+  id bigint primary key generated always as identity,
+  name text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT measurement_types_name_key UNIQUE (name)
 );
+CREATE INDEX IF NOT EXISTS idx_measurement_types_name ON measurement_types(name);
 
+--CHECK
+CREATE TABLE orders (
+  id bigint primary key generated always as identity,
+  student_id integer NULL,
+  uniform_type text NOT NULL,
+  due_date date NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  employee_id uuid NULL,
+  total_amount numeric(10,2) NOT NULL,
+  amount_paid numeric(10,2) NOT NULL DEFAULT 0,
+  balance numeric GENERATED ALWAYS AS (total_amount - amount_paid) STORED,
+  payment_date timestamp with time zone NULL,
+  payment_status text NOT NULL DEFAULT 'not paid',
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  order_measurements jsonb NULL,
+  completed_at timestamp with time zone NULL,
+  payment_updated_by text NULL,
+  assigned_by text NULL,
+  receipt_hash text NULL,
+  receipt_data jsonb NULL,
+  CONSTRAINT orders_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES profiles(id),
+  CONSTRAINT orders_student_id_fkey FOREIGN KEY (student_id) REFERENCES students(id),
+  CONSTRAINT orders_payment_status_check CHECK (payment_status IN ('not paid', 'partial', 'fully paid')),
+  CONSTRAINT orders_status_check CHECK (status IN ('pending', 'in progress', 'completed')),
+  CONSTRAINT orders_uniform_type_check CHECK (uniform_type IN ('upper', 'lower', 'both'))
+);
+CREATE INDEX IF NOT EXISTS idx_orders_receipt_hash ON orders(receipt_hash);
+
+-- CHECKKKKKKKKKKKKKKKKKKKKKK
+CREATE TABLE profiles (
+  id uuid NOT NULL,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  role text NOT NULL,
+  contact_number text NULL,
+  address text NULL,
+  position text NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_role_check CHECK (role IN ('superadmin', 'admin', 'employee'))
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+
+--CHECK
+CREATE TABLE students (
+  id bigint primary key generated always as identity,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  gender text NOT NULL,
+  course_id integer NULL,
+  contact_number text NULL,
+  address text NULL,
+  measurements jsonb NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT students_course_id_fkey FOREIGN KEY (course_id) REFERENCES courses(id),
+  CONSTRAINT students_gender_check CHECK (gender IN ('male', 'female'))
+);
+CREATE INDEX IF NOT EXISTS idx_students_course_id ON students(course_id);
+
+--CHECK
 CREATE TABLE uniform_configuration (
-id serial primary key,
-gender text not null check (gender in ('male', 'female', 'unisex')),
-course_id int references courses(id),
-wear_type text not null check (wear_type in ('upper', 'lower')),
-measurement_specs jsonb not null default '[]',
---eg. [{"measurement_type_id": 1, "base_cm": 40, "additional_cost_per_cm": 2.50}, {"measurement_type_id": 2, "base_cm": 90, "additional_cost_per_cm": 3.00}]
-base_price numeric(10, 2) not null,
-created_at timestamptz default now() not null,
-unique(course_id, gender, wear_type)
+  id bigint primary key generated always as identity,
+  gender text NOT NULL,
+  course_id integer NULL,
+  wear_type text NOT NULL,
+  measurement_specs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  base_price numeric(10,2) NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT uniform_configuration_course_id_gender_wear_type_key UNIQUE (course_id, gender, wear_type),
+  CONSTRAINT uniform_configuration_course_id_fkey FOREIGN KEY (course_id) REFERENCES courses(id),
+  CONSTRAINT uniform_configuration_gender_check CHECK (gender IN ('male', 'female', 'unisex')),
+  CONSTRAINT uniform_configuration_wear_type_check CHECK (wear_type IN ('upper', 'lower'))
 );
-
-CREATE INDEX idx_uniform_config_wear_type ON uniform_configuration(wear_type);
-CREATE INDEX idx_uniform_config_course ON uniform_configuration(course_id);
-
-create table students (
-id serial primary key,
-first_name text not null,
-last_name text not null,
-gender text not null check (gender in ('male', 'female')),
-course_id int references courses(id),
-contact_number text,
-address text,
-measurements jsonb, -- New column for measurements
-created_at timestamptz default now() not null
-);
-
-create table orders (
-id serial primary key,
-student_id int references students(id),
-uniform_type text not null check (uniform_type in ('upper', 'lower', 'both')),
-due_date date not null,
-status text not null check (status in ('pending', 'in progress', 'completed')) default 'pending',
-employee_id uuid references profiles(id),
-total_amount numeric(10, 2) not null,
-amount_paid numeric(10, 2) not null default 0,
-balance numeric(10, 2) generated always as (total_amount - amount_paid) stored,
-payment_date date,
-completed_at timestamptz,
-payment_status text not null check (payment_status in ('not paid', 'partial', 'fully paid')) default 'not paid',
-order_measurements jsonb,
-payment_updated_by text,
-assigned_by text,
-created_at timestamptz default now() not null,
-updated_at timestamptz default now() not null
-);
-
-create table admin_permissions (
-id serial primary key,
-admin_id uuid references profiles(id),
-route_path text not null,
-is_permitted boolean default true,
-created_at timestamptz default now() not null,
-unique(admin_id, route_path)
-);
-
--- Create indexes for foreign keys
-create index idx_uniform_config_course on uniform_configuration(course_id);
-create index idx_students_course on students(course_id);
-create index idx_orders_student on orders(student_id);
-create index idx_orders_employee on orders(employee_id);
-
--- Insert role data for testing purposes
-insert into profiles (id, first_name, last_name, role, contact_number, address, position)
-values
-('2eb9f794-5018-4831-af04-3d41ca657d35', 'Super', 'Admin', 'superadmin', '09787819382', 'Quezon City', 'Super Administrator'),
-('ca139524-6c87-45e4-b117-918d36e6a9f7', 'Jane', 'Admin', 'admin', '09890192838', 'Manila Philippines', 'Administrator'),
-('bb027377-0506-49ba-a026-7a16d74cf46d', 'John', 'Employee', 'employee', '09109090930', 'Caloocan Ph5', 'Staff');
+CREATE INDEX IF NOT EXISTS idx_uniform_config_course ON uniform_configuration(course_id);
+CREATE INDEX IF NOT EXISTS idx_uniform_config_wear_type ON uniform_configuration(wear_type);
