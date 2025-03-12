@@ -83,6 +83,8 @@
       keywords: "RichRed JOMS, students, profiles, uniforms",
     },
   }[$page.url.pathname];
+
+  injectAnalytics()
 </script>
 
 <svelte:head>
