@@ -1,6 +1,7 @@
 <script>
   import "../app.css";
   import { page } from "$app/stores";
+  import { injectAnalytics } from '@vercel/analytics/sveltekit'
 
   $: metaData = {
     "/": {
