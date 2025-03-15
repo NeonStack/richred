@@ -41,7 +41,7 @@
         />
         <h1 class="text-3xl font-bold mb-4 text-primary">Welcome</h1>
         <p class="text-lg mb-6 text-center text-white">
-          Access the Job Order Monitoring System
+          Access the Point of Sale System
         </p>
       </div>
     </div>
@@ -236,7 +236,7 @@
 
           <div class="mt-6 text-center text-sm text-gray-500">
             <p class="mt-4 text-primary text-xs">
-              JOMS RichRed Clotheshoppe V1
+              POS RichRed Clotheshoppe V1
             </p>
           </div>
         </div>
