@@ -137,6 +137,181 @@
   let paymentStatusChartEl;
   let completionPerformanceChartEl;
 
+  // Define consistent color palettes - fix case sensitivity issues
+  const colorPalettes = {
+    primary: "#B73233",
+    secondary: "#E85D2F",
+    // Gender colors - make case insensitive
+    gender: {
+      female: "#FF6B81", // Pink for female
+      male: "#3B82F6",   // Blue for male
+      Female: "#FF6B81", // Duplicated with correct casing
+      Male: "#3B82F6"    // Duplicated with correct casing
+    },
+    // Status colors - more distinct and meaningful
+    status: {
+      completed: "#10B981",
+      "in progress": "#3B82F6",
+      pending: "#F59E0B",
+      cancelled: "#EF4444"
+    },
+    // Payment status colors - include all possible variations
+    payment: {
+      "fully paid": "#10B981",
+      "partially paid": "#F59E0B",
+      "not paid": "#EF4444",
+      partial: "#F59E0B",
+      fullyPaid: "#10B981",
+      notPaid: "#EF4444"
+    },
+    // Delivery performance colors
+    delivery: {
+      "On Time": "#10B981",
+      "on time": "#10B981",
+      Late: "#EF4444",
+      late: "#EF4444"
+    },
+    // Color scales for bar charts
+    barColors: ["#B73233", "#E85D2F", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"],
+    // Color scale for pie/donut charts
+    pieColors: ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"],
+    // For reports/categorical data
+    categorical: ["#4F46E5", "#7C3AED", "#C026D3", "#DB2777", "#E11D48", "#EA580C", "#D97706", "#65A30D", "#059669", "#0891B2", "#0284C7", "#2563EB"]
+  };
+
+  // Chart options - separate by chart type for better customization
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+        labels: { usePointStyle: true, padding: 15, font: { size: 12 } },
+      },
+      tooltip: {
+        backgroundColor: "#1f2937",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "#e5e7eb",
+        borderWidth: 1,
+        padding: 10,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += formatCurrency(context.parsed.y);
+            }
+            return label;
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12 }, color: "#6b7280" },
+      },
+      y: {
+        grid: { color: "#e5e7eb" },
+        ticks: { font: { size: 12 }, color: "#6b7280" },
+        beginAtZero: true,
+      },
+    },
+    elements: {
+      line: {
+        tension: 0.4,
+      },
+      point: {
+        radius: 3,
+        hoverRadius: 5
+      }
+    },
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+  };
+
+  const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false, // Usually not needed for simple bar charts
+      },
+      tooltip: {
+        backgroundColor: "#1f2937",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        borderColor: "#e5e7eb",
+        borderWidth: 1,
+        padding: 10,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 12 }, color: "#6b7280" },
+      },
+      y: {
+        grid: { color: "#e5e7eb" },
+        ticks: { font: { size: 12 }, color: "#6b7280" },
+        beginAtZero: true,
+      },
+    },
+  };
+
+  const doughnutPieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+        labels: { 
+          usePointStyle: true, 
+          padding: 15, 
+          font: { size: 12 },
+          generateLabels: function(chart) {
+            // Get the default legend items
+            const original = Chart.overrides.pie.plugins.legend.labels.generateLabels(chart);
+            
+            // Calculate the total
+            const total = chart.data.datasets[0].data.reduce((sum, value) => sum + value, 0);
+            
+            // Add percentages to each label
+            original.forEach((item, i) => {
+              const value = chart.data.datasets[0].data[i];
+              const percentage = ((value / total) * 100).toFixed(1);
+              item.text = `${chart.data.labels[i]}: ${percentage}%`;
+            });
+            
+            return original;
+          }
+        },
+      },
+      tooltip: {
+        backgroundColor: "#1f2937",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((sum, value) => sum + value, 0);
+            const value = context.parsed;
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${context.label}: ${percentage}% (${value})`;
+          }
+        }
+      },
+    },
+    cutout: "60%", // For doughnut charts
+    borderWidth: 1,
+    borderColor: "#fff",
+  };
+
   // Function to initialize revenue chart
   function initRevenueChart() {
     if (revenueChart) revenueChart.destroy();
@@ -179,10 +354,16 @@
           }
           return orderAmount.orderRevenue || 0;
         }),
-        borderColor: "#B73233",
-        backgroundColor: "rgba(183, 50, 51, 0.1)",
+        borderColor: colorPalettes.primary,
+        backgroundColor: `${colorPalettes.primary}20`, // 20 is hex for 12% opacity
         fill: true,
         tension: 0.4,
+        pointBackgroundColor: colorPalettes.primary,
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: colorPalettes.primary,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ];
 
@@ -190,10 +371,11 @@
       type: "line",
       data: { labels, datasets },
       options: {
-        ...commonOptions,
+        ...lineChartOptions,
         scales: {
+          ...lineChartOptions.scales,
           y: {
-            beginAtZero: true,
+            ...lineChartOptions.scales.y,
             ticks: { callback: (value) => formatCurrency(value) },
           },
         },
@@ -226,19 +408,26 @@
           {
             label: `Average Order Value (${selectedTimeFrame})`,
             data: values,
-            borderColor: "#E85D2F",
-            backgroundColor: "rgba(232, 93, 47, 0.1)",
+            borderColor: colorPalettes.secondary,
+            backgroundColor: `${colorPalettes.secondary}20`,
             fill: true,
             tension: 0.4,
             spanGaps: true, // This ensures continuous line even with missing data
+            pointBackgroundColor: colorPalettes.secondary,
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: colorPalettes.secondary,
+            pointRadius: 4,
+            pointHoverRadius: 6,
           },
         ],
       },
       options: {
-        ...commonOptions,
+        ...lineChartOptions,
         scales: {
+          ...lineChartOptions.scales,
           y: {
-            beginAtZero: true,
+            ...lineChartOptions.scales.y,
             ticks: { callback: (value) => formatCurrency(value) },
           },
         },
@@ -246,26 +435,37 @@
     });
   }
 
-  // Initialize order status chart
+  // Initialize order status chart - improved with case-insensitive matching
   function initOrderStatusChart() {
     if (orderStatusChart) orderStatusChart.destroy();
     if (!orderStatusChartEl) return;
 
+    const labels = Object.keys(data.orderMetrics.byStatus);
+    const values = Object.values(data.orderMetrics.byStatus);
+    
+    // Match colors to status with better fallbacks
+    const backgroundColors = labels.map(status => {
+      const statusKey = status.toLowerCase();
+      return colorPalettes.status[status] || colorPalettes.status[statusKey] ||
+        (statusKey === 'completed' ? "#10B981" : 
+         statusKey.includes('progress') ? "#3B82F6" :
+         statusKey === 'pending' ? "#F59E0B" : "#777777");
+    });
+
     orderStatusChart = new Chart(orderStatusChartEl, {
       type: "doughnut",
       data: {
-        labels: Object.keys(data.orderMetrics.byStatus),
+        labels,
         datasets: [
           {
-            data: Object.values(data.orderMetrics.byStatus),
-            backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#EF4444"],
+            data: values,
+            backgroundColor: backgroundColors,
+            borderWidth: 1,
+            borderColor: "#fff",
           },
         ],
       },
-      options: {
-        ...commonOptions,
-        cutout: "60%",
-      },
+      options: doughnutPieOptions,
     });
   }
 
@@ -274,39 +474,106 @@
     if (courseEnrollmentChart) courseEnrollmentChart.destroy();
     if (!courseEnrollmentChartEl) return;
 
+    const courseData = data.studentAnalytics.courseEnrollment;
+    
+    // Sort courses by enrollment count (descending)
+    const sortedCourses = Object.entries(courseData)
+      .sort((a, b) => b[1] - a[1]);
+    
+    const labels = sortedCourses.map(item => item[0]);
+    const values = sortedCourses.map(item => item[1]);
+    
+    // Create gradient colors for courses
+    const colors = colorPalettes.barColors;
+    const gradientColors = labels.map((_, index) => colors[index % colors.length]);
+
     courseEnrollmentChart = new Chart(courseEnrollmentChartEl, {
       type: "bar",
       data: {
-        labels: Object.keys(data.studentAnalytics.courseEnrollment),
+        labels,
         datasets: [
           {
             label: "Students Enrolled",
-            data: Object.values(data.studentAnalytics.courseEnrollment),
-            backgroundColor: "#B73233",
+            data: values,
+            backgroundColor: gradientColors,
+            barPercentage: 0.7,
+            categoryPercentage: 0.8,
+            borderRadius: 4,
           },
         ],
       },
-      options: commonOptions,
+      options: {
+        ...barChartOptions,
+        indexAxis: 'y', // Horizontal bar chart
+        plugins: {
+          ...barChartOptions.plugins,
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: true, color: "#e5e7eb" },
+            ticks: { font: { size: 12 }, color: "#6b7280" },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 12 }, color: "#6b7280" },
+          },
+        },
+      },
     });
   }
 
-  // Initialize gender distribution chart
+  // Initialize gender distribution chart - improved with case-insensitive matching
   function initGenderChart() {
     if (genderChart) genderChart.destroy();
     if (!genderChartEl) return;
 
+    const genderData = data.studentAnalytics.genderDistribution;
+    const labels = Object.keys(genderData);
+    const values = Object.values(genderData);
+    
+    // Get appropriate colors for each gender with better fallback
+    const backgroundColors = labels.map(gender => {
+      // Try to match with case-insensitive lookup
+      const genderKey = gender.toLowerCase();
+      return colorPalettes.gender[genderKey] || colorPalettes.gender[gender] || 
+        (genderKey === "female" ? "#FF6B81" : "#3B82F6");
+    });
+
     genderChart = new Chart(genderChartEl, {
       type: "pie",
       data: {
-        labels: Object.keys(data.studentAnalytics.genderDistribution),
+        labels,
         datasets: [
           {
-            data: Object.values(data.studentAnalytics.genderDistribution),
-            backgroundColor: ["#EC4899", "#3B82F6"],
+            data: values,
+            backgroundColor: backgroundColors,
+            borderWidth: 1,
+            borderColor: "#fff",
           },
         ],
       },
-      options: commonOptions,
+      options: {
+        ...doughnutPieOptions,
+        plugins: {
+          ...doughnutPieOptions.plugins,
+          // Add percentages directly in the chart for better readability
+          datalabels: {
+            formatter: (value, ctx) => {
+              const total = ctx.dataset.data.reduce((sum, val) => sum + val, 0);
+              const percentage = ((value / total) * 100).toFixed(0) + '%';
+              return percentage;
+            },
+            color: '#fff',
+            font: {
+              weight: 'bold',
+              size: 12
+            }
+          }
+        }
+      },
     });
   }
 
@@ -315,19 +582,49 @@
     if (busyDaysChart) busyDaysChart.destroy();
     if (!busyDaysChartEl) return;
 
+    // Define order of days
+    const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    
+    // Get days sorted in proper order
+    const busyDaysData = data.timeBasedMetrics.busyDays;
+    const sortedDays = Object.keys(busyDaysData)
+      .sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+    
+    const values = sortedDays.map(day => busyDaysData[day]);
+    
     busyDaysChart = new Chart(busyDaysChartEl, {
       type: "bar",
       data: {
-        labels: Object.keys(data.timeBasedMetrics.busyDays),
+        labels: sortedDays,
         datasets: [
           {
             label: "Orders",
-            data: Object.values(data.timeBasedMetrics.busyDays),
-            backgroundColor: "#E85D2F",
+            data: values,
+            backgroundColor: values.map((value, index) => {
+              // Use color intensity based on order count
+              const normalizedValue = Math.min(value / Math.max(...values), 1);
+              const opacity = 0.4 + (normalizedValue * 0.6);
+              return `${colorPalettes.secondary}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`;
+            }),
+            borderWidth: 0,
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.8,
           },
         ],
       },
-      options: commonOptions,
+      options: {
+        ...barChartOptions,
+        plugins: {
+          ...barChartOptions.plugins,
+          tooltip: {
+            ...barChartOptions.plugins.tooltip,
+            callbacks: {
+              label: (context) => `Orders: ${context.parsed.y}`,
+            }
+          }
+        }
+      },
     });
   }
 
@@ -337,80 +634,151 @@
     if (!employeePerformanceChartEl) return;
 
     const employeeData = data.performanceMetrics.employeeStats;
+    
+    // Sort employees by completed orders (descending)
+    const sortedEmployees = Object.entries(employeeData)
+      .sort((a, b) => b[1].completed - a[1].completed);
+    
+    const labels = sortedEmployees.map(item => item[0]);
+    const completedValues = sortedEmployees.map(item => item[1].completed);
+    
     employeePerformanceChart = new Chart(employeePerformanceChartEl, {
       type: "bar",
       data: {
-        labels: Object.keys(employeeData),
+        labels,
         datasets: [
           {
             label: "Completed Orders",
-            data: Object.values(employeeData).map((e) => e.completed),
-            backgroundColor: "#10B981",
-          },
-        ],
-      },
-      options: commonOptions,
-    });
-  }
-
-  // Initialize quarterly revenue chart
-  function initQuarterlyRevenueChart() {
-    if (quarterlyRevenueChart) quarterlyRevenueChart.destroy();
-    if (!quarterlyRevenueChartEl) return;
-
-    quarterlyRevenueChart = new Chart(quarterlyRevenueChartEl, {
-      type: "bar",
-      data: {
-        labels: Object.keys(data.financialMetrics.revenueByQuarter),
-        datasets: [
-          {
-            label: "Revenue",
-            data: Object.values(data.financialMetrics.revenueByQuarter),
-            backgroundColor: "#B73233",
-          },
+            data: completedValues,
+            backgroundColor: colorPalettes.status.completed,
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.8,
+          }
         ],
       },
       options: {
-        ...commonOptions,
+        ...barChartOptions,
+        indexAxis: 'y', // Horizontal bar chart for better readability
         scales: {
+          x: {
+            grid: { display: true, color: "#e5e7eb" },
+            ticks: { font: { size: 12 }, color: "#6b7280" },
+          },
           y: {
-            beginAtZero: true,
-            ticks: { callback: (value) => formatCurrency(value) },
+            grid: { display: false },
+            ticks: { font: { size: 12 }, color: "#6b7280" },
           },
         },
       },
     });
   }
 
-  // Initialize payment status chart
-  function initPaymentStatusChart() {
-    if (paymentStatusChart) paymentStatusChart.destroy();
-    if (!paymentStatusChartEl) return;
+  // Initialize quarterly revenue chart with proper quarter ordering
+  function initQuarterlyRevenueChart() {
+    if (quarterlyRevenueChart) quarterlyRevenueChart.destroy();
+    if (!quarterlyRevenueChartEl) return;
 
-    paymentStatusChart = new Chart(paymentStatusChartEl, {
-      type: "doughnut",
+    const quarterlyData = data.financialMetrics.revenueByQuarter;
+    
+    // Ensure quarters are in correct order: Q1, Q2, Q3, Q4
+    const orderedQuarters = ['Q1', 'Q2', 'Q3', 'Q4'].filter(q => quarterlyData[q] !== undefined);
+    const values = orderedQuarters.map(quarter => quarterlyData[quarter]);
+    
+    quarterlyRevenueChart = new Chart(quarterlyRevenueChartEl, {
+      type: "bar",
       data: {
-        labels: Object.keys(data.financialMetrics.paymentStats),
+        labels: orderedQuarters,
         datasets: [
           {
-            data: Object.values(data.financialMetrics.paymentStats),
-            backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
+            label: "Revenue",
+            data: values,
+            backgroundColor: values.map((_, index) => {
+              // Create gradient effect
+              const baseColor = colorPalettes.primary;
+              const opacity = 0.7 + (index * 0.1);
+              return `${baseColor}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`;
+            }),
+            borderRadius: 4,
+            barPercentage: 0.7,
+            categoryPercentage: 0.8,
           },
         ],
       },
       options: {
-        ...commonOptions,
-        cutout: "60%",
+        ...barChartOptions,
+        scales: {
+          ...barChartOptions.scales,
+          y: {
+            ...barChartOptions.scales.y,
+            ticks: { callback: (value) => formatCurrency(value) },
+          },
+        },
+        plugins: {
+          ...barChartOptions.plugins,
+          tooltip: {
+            ...barChartOptions.plugins.tooltip,
+            callbacks: {
+              label: (context) => `Revenue: ${formatCurrency(context.parsed.y)}`,
+            }
+          }
+        }
       },
     });
   }
 
-  // Initialize completion performance chart
+  // Initialize payment status chart - improved with case-insensitive matching
+  function initPaymentStatusChart() {
+    if (paymentStatusChart) paymentStatusChart.destroy();
+    if (!paymentStatusChartEl) return;
+
+    const paymentData = data.financialMetrics.paymentStats;
+    const labels = Object.keys(paymentData);
+    const values = Object.values(paymentData);
+    
+    // Fix default colors mapping for payment status
+    const defaultColors = {
+      "fully paid": "#10B981",
+      partial: "#F59E0B", 
+      "not paid": "#EF4444",
+      "fullyPaid": "#10B981", 
+      "partiallyPaid": "#F59E0B", 
+      "notPaid": "#EF4444"
+    };
+    
+    // Match colors to payment status with better fallbacks
+    const backgroundColors = labels.map(status => {
+      const statusKey = status.toLowerCase();
+      return colorPalettes.payment[status] || colorPalettes.payment[statusKey] || 
+        defaultColors[status] || defaultColors[statusKey] || 
+        (statusKey.includes("paid") && statusKey.includes("not") ? "#EF4444" : 
+         statusKey.includes("partial") ? "#F59E0B" : "#10B981");
+    });
+
+    paymentStatusChart = new Chart(paymentStatusChartEl, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [
+          {
+            data: values,
+            backgroundColor: backgroundColors,
+            borderWidth: 1,
+            borderColor: "#fff",
+          },
+        ],
+      },
+      options: doughnutPieOptions,
+    });
+  }
+
+  // Initialize completion performance chart - improved with case-insensitive matching
   function initCompletionPerformanceChart() {
     if (completionPerformanceChart) completionPerformanceChart.destroy();
     if (!completionPerformanceChartEl) return;
 
     const performanceData = data.timeBasedMetrics.deliveryPerformance;
+    
     completionPerformanceChart = new Chart(completionPerformanceChartEl, {
       type: "doughnut",
       data: {
@@ -418,13 +786,26 @@
         datasets: [
           {
             data: [performanceData.onTime, performanceData.late],
-            backgroundColor: ["#10B981", "#EF4444"],
+            backgroundColor: [
+              "#10B981",  // Always green for on-time
+              "#EF4444"   // Always red for late
+            ],
+            borderWidth: 1,
+            borderColor: "#fff",
           },
         ],
       },
       options: {
-        ...commonOptions,
-        cutout: "60%",
+        ...doughnutPieOptions,
+        plugins: {
+          ...doughnutPieOptions.plugins,
+          subtitle: {
+            display: true,
+            text: `On-time Rate: ${performanceData.percentOnTime}%`,
+            font: { size: 14, weight: 'bold' },
+            padding: { bottom: 10 }
+          }
+        }
       },
     });
   }
@@ -970,33 +1351,7 @@
 
     <!-- Main Content -->
     <main class="w-full md:ml-80 lg:ml-96 p-4 md:p-6">
-      <!-- Time-based Analytics Controls -->
-      <div
-        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6"
-      >
-        <h2 class="text-lg font-semibold text-gray-700 mb-2 sm:mb-0">
-          Time Analytics
-        </h2>
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <label for="timeframe" class="text-xs text-gray-500"
-            >View data by:</label
-          >
-          <div class="flex bg-gray-100 rounded-lg p-1">
-            {#each timeFrames as frame}
-              <button
-                class="px-3 py-1 text-sm rounded-md {selectedTimeFrame === frame
-                  ? 'bg-white shadow-sm text-secondary'
-                  : 'text-gray-600'}"
-                on:click={() => (selectedTimeFrame = frame)}
-              >
-                {frame.charAt(0).toUpperCase() + frame.slice(1)}
-              </button>
-            {/each}
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Orders -->
+      <!-- Recent Orders - Keep this first -->
       <div class="bg-white rounded-xl shadow-sm mb-6 overflow-hidden">
         <div class="flex justify-between items-center px-6 pt-5 pb-4">
           <h3 class="font-medium text-gray-800">Recent Orders</h3>
@@ -1060,6 +1415,32 @@
               {/each}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Time-based Analytics Controls - Moved below Recent Orders and made sticky -->
+      <div
+        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6 sticky top-0 z-10"
+      >
+        <h2 class="text-lg font-semibold text-gray-700 mb-2 sm:mb-0">
+          Time Analytics
+        </h2>
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <label for="timeframe" class="text-xs text-gray-500"
+            >View data by:</label
+          >
+          <div class="flex bg-gray-100 rounded-lg p-1">
+            {#each timeFrames as frame}
+              <button
+                class="px-3 py-1 text-sm rounded-md {selectedTimeFrame === frame
+                  ? 'bg-white shadow-sm text-secondary'
+                  : 'text-gray-600'}"
+                on:click={() => (selectedTimeFrame = frame)}
+              >
+                {frame.charAt(0).toUpperCase() + frame.slice(1)}
+              </button>
+            {/each}
+          </div>
         </div>
       </div>
 
@@ -1315,5 +1696,20 @@
 
   aside.md\:overflow-y-auto::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+  }
+
+  /* Style for sticky time analytics bar */
+  .sticky {
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 20;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  /* Add subtle animation when scrolling */
+  .sticky:not(:hover) {
+    transform: translateY(0);
   }
 </style>
