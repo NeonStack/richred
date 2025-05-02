@@ -25,6 +25,8 @@ CREATE INDEX IF NOT EXISTS idx_courses_course_code ON courses(course_code);
 CREATE TABLE measurement_types (
   id bigint primary key generated always as identity,
   name text NOT NULL,
+  default_base_cm DECIMAL,
+  default_additional_cost_per_cm DECIMAL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT measurement_types_name_key UNIQUE (name)
 );

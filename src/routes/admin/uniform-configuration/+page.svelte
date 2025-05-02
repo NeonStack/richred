@@ -1,7 +1,6 @@
 <script>
   import { enhance } from "$app/forms";
   import { invalidate } from "$app/navigation";
-  import { flip } from "svelte/animate";
 
   export let data;
 
@@ -126,16 +125,6 @@
     );
   }
 
-  // Handle measurement selection - Make this more robust
-  function toggleMeasurement(typeId) {
-    selectedMeasurements = new Set(selectedMeasurements); // Create new Set to ensure reactivity
-    if (selectedMeasurements.has(typeId)) {
-      selectedMeasurements.delete(typeId);
-    } else {
-      selectedMeasurements.add(typeId);
-    }
-  }
-
   // Add the configuration map
   let configurationMap = data.configurationMap;
 
@@ -231,6 +220,47 @@
     if (currentPage >= totalPages - 2) return totalPages - 4 + i;
     return currentPage - 2 + i;
   });
+
+  // Track measurement specifications
+  let measurementSpecs = {};
+
+  // Initialize measurement specs when editing
+  $: if (selectedConfig) {
+    // Convert measurement_specs array to object for easier access
+    measurementSpecs = {};
+    selectedConfig.measurement_specs?.forEach(spec => {
+      measurementSpecs[spec.measurement_type_id] = {
+        base_cm: spec.base_cm,
+        additional_cost_per_cm: spec.additional_cost_per_cm
+      };
+    });
+  }
+
+  // Handle measurement selection with default values
+  function toggleMeasurement(typeId) {
+    selectedMeasurements = new Set(selectedMeasurements); // Create new Set to ensure reactivity
+    
+    if (selectedMeasurements.has(typeId)) {
+      // Remove the measurement
+      selectedMeasurements.delete(typeId);
+      // We don't delete from measurementSpecs to preserve values if re-added
+    } else {
+      // Add the measurement
+      selectedMeasurements.add(typeId);
+      
+      // If there's no existing spec for this measurement type
+      if (!measurementSpecs[typeId]) {
+        // Find the measurement type to get default values
+        const measurementType = measurementTypes.find(mt => mt.id === typeId);
+        
+        // Add default values if available, otherwise use 0
+        measurementSpecs[typeId] = {
+          base_cm: measurementType?.default_base_cm || 0,
+          additional_cost_per_cm: measurementType?.default_additional_cost_per_cm || 0
+        };
+      }
+    }
+  }
 </script>
 
 <div class="p-6">
@@ -603,6 +633,7 @@
                   >
                     Basic Information
                   </h3>
+                  
                   <div class="space-y-4">
                     <div>
                       <label
@@ -731,8 +762,7 @@
                     <div>
                       <label
                         class="block text-sm font-medium text-gray-600 mb-1"
-                        for="basePrice">Base Price (₱)</label
-                      >
+                        for="basePrice">Base Price (₱)</label>
                       <input
                         type="number"
                         name="basePrice"
@@ -754,6 +784,18 @@
                   <h3 class="text-base md:text-lg font-semibold text-primary">
                     Measurement Specifications
                   </h3>
+                  
+                  <!-- Pricing Formula Visualization -->
+                  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
+                    <p class="text-xs text-blue-800 font-medium mb-2">How pricing works:</p>
+                    <div class="flex items-center flex-wrap gap-1 text-xs">
+                      <span class="px-2 py-1 bg-primary text-white rounded">Base Price</span>
+                      <span>+</span>
+                      <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded whitespace-nowrap">(Student's cm - Base cm) × Cost per extra cm</span>
+                      <span>=</span>
+                      <span class="px-2 py-1 bg-green-100 text-green-800 rounded">Final Price</span>
+                    </div>
+                  </div>
 
                   <!-- Selected Measurements -->
                   {#if selectedMeasurements.size > 0}
@@ -768,11 +810,10 @@
                       >
                         {#each measurementTypes as measurementType}
                           {#if selectedMeasurements.has(measurementType.id)}
-                            {@const spec =
-                              selectedConfig?.measurement_specs?.find(
-                                (s) =>
-                                  s.measurement_type_id === measurementType.id
-                              )}
+                            {@const spec = measurementSpecs[measurementType.id] || {
+                              base_cm: measurementType.default_base_cm || 0,
+                              additional_cost_per_cm: measurementType.default_additional_cost_per_cm || 0
+                            }}
                             <div
                               class="group"
                               on:click|preventDefault={() =>
@@ -802,31 +843,41 @@
                                 >
                                   <div>
                                     <label class="block text-xs text-gray-600"
-                                      >Base (cm)</label
-                                    >
+                                      >Base (cm)</label>
                                     <input
                                       type="number"
                                       name="baseCm_{measurementType.id}"
-                                      value={spec?.base_cm ?? 0}
+                                      value={spec.base_cm}
                                       class="block w-full px-2 py-1 text-sm rounded-md border border-gray-200 bg-white/50"
                                       min="0"
                                       max="500"
                                       step="0.1"
                                       required
+                                      on:input={(e) => {
+                                        measurementSpecs[measurementType.id] = {
+                                          ...measurementSpecs[measurementType.id],
+                                          base_cm: parseFloat(e.target.value)
+                                        };
+                                      }}
                                     />
                                   </div>
                                   <div>
                                     <label class="block text-xs text-gray-600"
-                                      >Cost per extra cm (₱)</label
-                                    >
+                                      >Cost per extra cm (₱)</label>
                                     <input
                                       type="number"
                                       name="costPerCm_{measurementType.id}"
-                                      value={spec?.additional_cost_per_cm ?? 0}
+                                      value={spec.additional_cost_per_cm}
                                       class="block w-full px-2 py-1 text-sm rounded-md border border-gray-200 bg-white/50"
                                       min="0"
                                       step="0.01"
                                       required
+                                      on:input={(e) => {
+                                        measurementSpecs[measurementType.id] = {
+                                          ...measurementSpecs[measurementType.id],
+                                          additional_cost_per_cm: parseFloat(e.target.value)
+                                        };
+                                      }}
                                     />
                                   </div>
                                 </div>
@@ -843,7 +894,7 @@
                     <h4
                       class="text-xs md:text-sm font-medium text-gray-500 mb-3"
                     >
-                      Available Measurements
+                      Available Measurements (Click to add)
                     </h4>
                     <div
                       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"

@@ -11,6 +11,7 @@ const toSentenceCase = (str) => {
 
 const NAME_MAX_LENGTH = 40;
 const NAME_PATTERN = /^[A-Za-z0-9\s-]+$/;
+const DECIMAL_PATTERN = /^\d+(\.\d{1,2})?$/;
 
 export const load = async ({ locals }) => {
     try {
@@ -50,32 +51,63 @@ export const load = async ({ locals }) => {
     }
 };
 
+// Validate decimal field
+const validateDecimalField = (value, fieldName) => {
+    if (value === null || value === undefined || value === '') {
+        return `${fieldName} is required`;
+    }
+    
+    if (!DECIMAL_PATTERN.test(value)) {
+        return `${fieldName} must be a valid decimal number (up to 2 decimal places)`;
+    }
+    
+    return null;
+};
+
 export const actions = {
     create: async ({ request }) => {
         const formData = await request.formData();
-        const names = formData.getAll('names')
-            .map(name => toSentenceCase(name.toString().trim()))
-            .filter(name => name.length > 0);
+        const names = formData.getAll('names');
+        const default_base_cms = formData.getAll('default_base_cms');
+        const default_additional_cost_per_cms = formData.getAll('default_additional_cost_per_cms');
 
-        if (names.length === 0) {
+        // Create an array of measurement objects
+        const measurements = names.map((name, index) => ({
+            name: toSentenceCase(name.toString().trim()),
+            default_base_cm: default_base_cms[index]?.toString().trim(),
+            default_additional_cost_per_cm: default_additional_cost_per_cms[index]?.toString().trim()
+        })).filter(m => m.name.length > 0);
+
+        if (measurements.length === 0) {
             return fail(400, {
                 error: 'At least one measurement name is required'
             });
         }
 
-        // Validate each name
-        const validationErrors = names.flatMap((name, index) => {
-            const errors = [];
-            
-            if (!name) {
-                errors.push(`Measurement name is required for entry ${index + 1}`);
-            } else if (name.length > NAME_MAX_LENGTH) {
-                errors.push(`Name must not exceed ${NAME_MAX_LENGTH} characters for entry ${index + 1}`);
-            } else if (!NAME_PATTERN.test(name)) {
-                errors.push(`Measurement name can only contain letters, numbers, spaces, and dashes for entry ${index + 1}`);
+        // Validate each measurement
+        const validationErrors = [];
+        
+        measurements.forEach((measurement, index) => {
+            // Validate name
+            if (!measurement.name) {
+                validationErrors.push(`Measurement name is required for entry ${index + 1}`);
+            } else if (measurement.name.length > NAME_MAX_LENGTH) {
+                validationErrors.push(`Name must not exceed ${NAME_MAX_LENGTH} characters for entry ${index + 1}`);
+            } else if (!NAME_PATTERN.test(measurement.name)) {
+                validationErrors.push(`Measurement name can only contain letters, numbers, spaces, and dashes for entry ${index + 1}`);
             }
-
-            return errors;
+            
+            // Validate default_base_cm
+            const baseCmError = validateDecimalField(measurement.default_base_cm, 'Default base cm');
+            if (baseCmError) {
+                validationErrors.push(`${baseCmError} for entry ${index + 1}`);
+            }
+            
+            // Validate default_additional_cost_per_cm
+            const costPerCmError = validateDecimalField(measurement.default_additional_cost_per_cm, 'Default cost per cm');
+            if (costPerCmError) {
+                validationErrors.push(`${costPerCmError} for entry ${index + 1}`);
+            }
         });
 
         if (validationErrors.length > 0) {
@@ -89,7 +121,7 @@ export const actions = {
             const { data: existingMeasurements } = await supabase
                 .from('measurement_types')
                 .select('name')
-                .in('name', names);
+                .in('name', measurements.map(m => m.name));
 
             if (existingMeasurements && existingMeasurements.length > 0) {
                 const duplicates = existingMeasurements.map(m => m.name).join(', ');
@@ -100,7 +132,7 @@ export const actions = {
 
             const { error: insertError } = await supabase
                 .from('measurement_types')
-                .insert(names.map(name => ({ name })));
+                .insert(measurements);
 
             if (insertError) throw insertError;
 
@@ -117,6 +149,8 @@ export const actions = {
         const formData = await request.formData();
         const id = formData.get('id');
         const name = toSentenceCase(formData.get('name')?.toString().trim() || '');
+        const default_base_cm = formData.get('default_base_cm')?.toString().trim() || "0";
+        const default_additional_cost_per_cm = formData.get('default_additional_cost_per_cm')?.toString().trim() || "0";
 
         if (!id || !name) {
             return fail(400, {
@@ -124,7 +158,7 @@ export const actions = {
             });
         }
 
-        // Validate input
+        // Validate name
         if (name.length > NAME_MAX_LENGTH) {
             return fail(400, {
                 error: `Name must not exceed ${NAME_MAX_LENGTH} characters`
@@ -135,6 +169,18 @@ export const actions = {
             return fail(400, {
                 error: 'Measurement name can only contain letters, numbers, spaces, and dashes'
             });
+        }
+
+        // Validate default_base_cm
+        const baseCmError = validateDecimalField(default_base_cm, 'Default base cm');
+        if (baseCmError) {
+            return fail(400, { error: baseCmError });
+        }
+        
+        // Validate default_additional_cost_per_cm
+        const costPerCmError = validateDecimalField(default_additional_cost_per_cm, 'Default cost per cm');
+        if (costPerCmError) {
+            return fail(400, { error: costPerCmError });
         }
 
         try {
@@ -154,7 +200,11 @@ export const actions = {
 
             const { error: updateError } = await supabase
                 .from('measurement_types')
-                .update({ name })
+                .update({ 
+                    name,
+                    default_base_cm,
+                    default_additional_cost_per_cm 
+                })
                 .eq('id', id);
 
             if (updateError) throw updateError;

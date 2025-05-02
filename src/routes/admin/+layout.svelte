@@ -275,7 +275,7 @@
     </div>
 
     <!-- Scrollable content area -->
-    <main class="flex-1 overflow-y-auto p-6 max-w-[100vw] lg:px-8">
+    <main class="flex-1 overflow-y-auto p-0 max-w-[100vw] lg:px-8">
       <slot />
     </main>
   </div>

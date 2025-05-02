@@ -798,13 +798,7 @@
       options: {
         ...doughnutPieOptions,
         plugins: {
-          ...doughnutPieOptions.plugins,
-          subtitle: {
-            display: true,
-            text: `On-time Rate: ${performanceData.percentOnTime}%`,
-            font: { size: 14, weight: 'bold' },
-            padding: { bottom: 10 }
-          }
+          ...doughnutPieOptions.plugins
         }
       },
     });
@@ -927,300 +921,1030 @@
 
   async function generateExcelReport() {
     const workbook = new ExcelJS.Workbook();
-
-    // Summary Sheet
-    const summarySheet = workbook.addWorksheet("Summary");
+    workbook.creator = "RichRed Admin Dashboard";
+    workbook.lastModifiedBy = "System";
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    
+    // Define consistent styles
+    const styles = {
+      header: {
+        font: { bold: true, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB73233' } },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } },
+        alignment: { horizontal: 'left', vertical: 'middle' }
+      },
+      sectionHeader: {
+        font: { bold: true, size: 12 },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } },
+        alignment: { horizontal: 'left', vertical: 'middle' }
+      },
+      total: {
+        font: { bold: true },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } },
+        border: { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } },
+        alignment: { horizontal: 'left' }
+      },
+      cell: {
+        alignment: { horizontal: 'left' }
+      },
+      currency: {
+        numFmt: '#,##0.00',  // Removed peso symbol
+        alignment: { horizontal: 'left' }
+      },
+      percentage: {
+        numFmt: '0.00"%"',
+        alignment: { horizontal: 'left' }
+      },
+      date: {
+        numFmt: 'yyyy-mm-dd',
+        alignment: { horizontal: 'left' }
+      },
+      greenHighlight: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4EA' } } },
+      redHighlight: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE8E6' } } },
+      yellowHighlight: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9E6' } } },
+      alternateRow: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9F9F9' } } }
+    };
+    
+    // Helper functions for consistent sheet creation
+    const helpers = {
+      // Apply header styles to the first row of a sheet
+      applyHeaderRow: (sheet, rowIndex = 1) => {
+        const headerRow = sheet.getRow(rowIndex);
+        headerRow.height = 22;
+        headerRow.eachCell((cell) => {
+          cell.style = styles.header;
+        });
+        return rowIndex;
+      },
+      
+      // Create a section header that spans all columns
+      addSectionHeader: (sheet, text, columnCount) => {
+        const rowIndex = sheet.rowCount + 1;
+        sheet.addRow([text]);
+        if (columnCount > 1) {
+          sheet.mergeCells(`A${rowIndex}:${String.fromCharCode(64 + columnCount)}${rowIndex}`);
+        }
+        const headerCell = sheet.getCell(`A${rowIndex}`);
+        headerCell.style = styles.sectionHeader;
+        return rowIndex;
+      },
+      
+      // Add total row with consistent formatting - fixed to avoid currency on non-monetary columns
+      addTotalRow: (sheet, columnCount, calculateColumns = [], startRow = 2, endRow = null) => {
+        // If endRow not specified, use the row before current last row
+        if (endRow === null) endRow = sheet.rowCount;
+        
+        const totalRow = sheet.addRow(["TOTAL"]);
+        
+        // Apply formulas to calculate columns - only for the specific section
+        calculateColumns.forEach(col => {
+          if (col > 1) { // Skip first column which is the "TOTAL" label
+            const colLetter = String.fromCharCode(64 + col);
+            
+            // Store the formula result with explicit numeric type to prevent Excel from formatting as date
+            totalRow.getCell(col).value = {
+              formula: `SUM(${colLetter}${startRow}:${colLetter}${endRow})`,
+              date1904: false
+            };
+            
+            // Enforce number type for count columns to prevent date formatting
+            if (sheet.getColumn(col).values && sheet.getColumn(col).values.some(v => typeof v === 'number')) {
+              totalRow.getCell(col).numFmt = '0'; // Simple number format for counts
+            }
+          }
+        });
+        
+        // Apply total style to all cells in the row but without currency format on non-monetary columns
+        totalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          if (colNumber <= columnCount) {
+            cell.style = styles.total;
+            
+            // Check if the column contains monetary values (look for currency formatting in the column's cells)
+            const column = sheet.getColumn(colNumber);
+            const isMonetary = column.values && column.values.some(v => {
+              const cellInCol = typeof v === 'object' && v !== null;
+              return cellInCol && v.numFmt && v.numFmt.includes('#,##0.00');
+            });
+            
+            if (isMonetary && calculateColumns.includes(colNumber)) {
+              cell.numFmt = styles.currency.numFmt;
+            }
+          }
+        });
+        
+        return totalRow.number; // Return the row number
+      },
+      
+      // Auto size columns based on content
+      autoSizeColumns: (sheet) => {
+        sheet.columns.forEach(column => {
+          let maxLength = 0;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const columnLength = cell.value ? cell.value.toString().length : 10;
+            if (columnLength > maxLength) {
+              maxLength = columnLength;
+            }
+          });
+          column.width = Math.min(maxLength + 4, 50);
+        });
+      },
+      
+      // Apply alternating row colors
+      applyAlternatingRows: (sheet, startRow = 2) => {
+        for (let i = startRow; i <= sheet.rowCount; i++) {
+          if (i % 2 === 0) {
+            sheet.getRow(i).eachCell({ includeEmpty: true }, (cell) => {
+              // Only apply if not already styled
+              if (!cell.style.fill || !cell.style.fill.fgColor) {
+                cell.style = Object.assign({}, cell.style, styles.alternateRow);
+              }
+            });
+          }
+        }
+      }
+    };
+    
+    // 1. EXECUTIVE SUMMARY SHEET
+    const summarySheet = workbook.addWorksheet("Executive Summary");
     summarySheet.columns = [
-      { header: "Metric", key: "metric", width: 20 },
-      { header: "Value", key: "value", width: 15 },
-      { header: "Description", key: "description", width: 40 },
+      { header: "Metric", key: "metric", width: 30, style: styles.cell },
+      { header: "Value", key: "value", width: 20, style: styles.cell },
+      { header: "Description", key: "description", width: 50, style: styles.cell }
     ];
-
-    // Add basic metrics
-    [...metrics, ...timeMetrics].forEach((metric) => {
-      summarySheet.addRow({
-        metric: metric.title,
-        value: metric.value,
-        description: metric.description,
+    helpers.applyHeaderRow(summarySheet);
+    
+    // Add report title
+    summarySheet.mergeCells('A1:C1');
+    const titleCell = summarySheet.getCell('A1');
+    titleCell.value = "RICHRED CLOTHESHOPPE - EXECUTIVE DASHBOARD";
+    titleCell.style = {
+      font: { bold: true, size: 16, color: { argb: 'FFFFFFFF' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB73233' } },
+      alignment: { horizontal: 'center', vertical: 'middle' }
+    };
+    summarySheet.getRow(1).height = 30;
+    
+    // Add report generation timestamp
+    summarySheet.mergeCells('A2:C2');
+    const dateCell = summarySheet.getCell('A2');
+    dateCell.value = `Report Generated: ${new Date().toLocaleString()}`;
+    dateCell.style = { font: { italic: true }, alignment: { horizontal: 'center' } };
+    
+    // Add core metrics section
+    helpers.addSectionHeader(summarySheet, "CORE BUSINESS METRICS", 3);
+    
+    // Add basic metrics with proper formatting
+    metrics.forEach(metric => {
+      const row = summarySheet.addRow([
+        metric.title,
+        metric.value,
+        metric.description
+      ]);
+      
+      // Apply style
+      row.getCell(1).style = styles.cell;
+      row.getCell(3).style = styles.cell;
+      
+      // Format value cell based on type
+      const valueCell = row.getCell(2);
+      valueCell.style = styles.cell;
+      
+      if (metric.type === 'revenue') {
+        valueCell.style = Object.assign({}, styles.cell, styles.currency);
+      }
+      else if (metric.type === 'completion') {
+        valueCell.style = styles.percentage;
+      }
+    });
+    
+    // Add time metrics section
+    helpers.addSectionHeader(summarySheet, "TIME-BASED METRICS", 3);
+    
+    timeMetrics.forEach(metric => {
+      const row = summarySheet.addRow([
+        metric.title, 
+        metric.value,
+        metric.description
+      ]);
+      
+      // Apply style
+      row.eachCell((cell) => {
+        cell.style = styles.cell;
       });
     });
-
-    // Orders Sheet
-    const ordersSheet = workbook.addWorksheet("Recent Orders");
+    
+    // 2. ORDERS ANALYSIS SHEET
+    const ordersSheet = workbook.addWorksheet("Orders Analysis");
     ordersSheet.columns = [
-      { header: "Student", key: "student", width: 20 },
-      { header: "Ordered At", key: "orderedAt", width: 15 },
-      { header: "Due Date", key: "dueDate", width: 15 },
-      { header: "Status", key: "status", width: 15 },
-      { header: "Amount", key: "amount", width: 15 },
+      { header: "Student", key: "student", width: 25, style: styles.cell },
+      { header: "Order Date", key: "orderDate", width: 15, style: styles.date },
+      { header: "Due Date", key: "dueDate", width: 15, style: styles.date },
+      { header: "Status", key: "status", width: 15, style: styles.cell },
+      { header: "Total Amount", key: "amount", width: 15, style: styles.currency },
+      { header: "Amount Paid", key: "amountPaid", width: 15, style: styles.currency },
+      { header: "Balance", key: "balance", width: 15, style: styles.currency },
+      { header: "Days to Complete", key: "daysToComplete", width: 20, style: styles.cell }
     ];
-
-    data.orderMetrics.recentOrders.forEach((order) => {
-      ordersSheet.addRow({
-        student: order.student,
-        orderedAt: new Date(order.orderedAt).toLocaleDateString(),
-        dueDate: new Date(order.dueDate).toLocaleDateString(),
-        status: order.status,
-        amount: order.amount,
-      });
-    });
-
-    // Order Status Sheet
-    const statusSheet = workbook.addWorksheet("Order Status");
-    statusSheet.columns = [
-      { header: "Status", key: "status", width: 15 },
-      { header: "Count", key: "count", width: 10 },
-    ];
-
-    Object.entries(data.orderMetrics.byStatus).forEach(([status, count]) => {
-      statusSheet.addRow({ status, count });
-    });
-
-    // Revenue Data Sheet
-    const revenueSheet = workbook.addWorksheet("Revenue Data");
-    revenueSheet.columns = [
-      { header: "Period", key: "period", width: 15 },
-      { header: "Revenue", key: "revenue", width: 15 },
-    ];
-
-    const timeData = data.financialMetrics.revenueOverTime[selectedTimeFrame];
-    Object.entries(timeData).forEach(([period, data]) => {
-      revenueSheet.addRow({
-        period,
-        revenue: data.orderRevenue,
-      });
-    });
-
-    // Course Enrollment Sheet
-    const courseSheet = workbook.addWorksheet("Course Enrollment");
-    courseSheet.columns = [
-      { header: "Course", key: "course", width: 20 },
-      { header: "Students", key: "students", width: 10 },
-    ];
-
-    Object.entries(data.studentAnalytics.courseEnrollment).forEach(
-      ([course, count]) => {
-        courseSheet.addRow({ course, students: count });
-      }
-    );
-
-    // Gender Distribution Sheet
-    const genderSheet = workbook.addWorksheet("Gender Distribution");
-    genderSheet.columns = [
-      { header: "Gender", key: "gender", width: 15 },
-      { header: "Count", key: "count", width: 10 },
-    ];
-
-    Object.entries(data.studentAnalytics.genderDistribution).forEach(
-      ([gender, count]) => {
-        genderSheet.addRow({ gender, count });
-      }
-    );
-
-    // Detailed Students Sheet
-    const studentsSheet = workbook.addWorksheet("Detailed Students");
-    studentsSheet.columns = [
-      { header: "ID", key: "id", width: 10 },
-      { header: "First Name", key: "firstName", width: 15 },
-      { header: "Last Name", key: "lastName", width: 15 },
-      { header: "Gender", key: "gender", width: 10 },
-      { header: "Course", key: "course", width: 15 },
-      { header: "Contact", key: "contact", width: 15 },
-      { header: "Address", key: "address", width: 30 },
-      { header: "Registration Date", key: "created", width: 15 },
-    ];
-
-    data.rawData.detailedStudents.forEach((student) => {
-      studentsSheet.addRow({
-        id: student.id,
-        firstName: student.first_name,
-        lastName: student.last_name,
-        gender: student.gender,
-        course: student.courses?.course_code || "N/A",
-        contact: student.contact_number || "N/A",
-        address: student.address || "N/A",
-        created: new Date(student.created_at).toLocaleDateString(),
-      });
-    });
-
-    // Detailed Orders Sheet
-    const detailedOrdersSheet = workbook.addWorksheet("Detailed Orders");
-    detailedOrdersSheet.columns = [
-      { header: "ID", key: "id", width: 10 },
-      { header: "Student", key: "student", width: 20 },
-      { header: "Type", key: "type", width: 10 },
-      { header: "Status", key: "status", width: 15 },
-      { header: "Due Date", key: "dueDate", width: 15 },
-      { header: "Total Amount", key: "total", width: 15 },
-      { header: "Amount Paid", key: "paid", width: 15 },
-      { header: "Balance", key: "balance", width: 15 },
-      { header: "Payment Status", key: "paymentStatus", width: 15 },
-      { header: "Assigned To", key: "employee", width: 20 },
-      { header: "Order Date", key: "created", width: 15 },
-      { header: "Completion Date", key: "completed", width: 15 },
-    ];
-
-    data.rawData.detailedOrders.forEach((order) => {
-      detailedOrdersSheet.addRow({
-        id: order.id,
-        student: `${order.students?.first_name} ${order.students?.last_name}`,
-        type: order.uniform_type,
-        status: order.status,
-        dueDate: new Date(order.due_date).toLocaleDateString(),
-        total: order.total_amount,
-        paid: order.amount_paid,
-        balance: order.balance,
-        paymentStatus: order.payment_status,
-        employee: order.profiles
-          ? `${order.profiles.first_name} ${order.profiles.last_name}`
-          : "Unassigned",
-        created: new Date(order.created_at).toLocaleDateString(),
-        completed: order.completed_at
-          ? new Date(order.completed_at).toLocaleDateString()
-          : "Not completed",
-      });
-    });
-
-    // Courses Sheet
-    const coursesSheet = workbook.addWorksheet("Courses");
-    coursesSheet.columns = [
-      { header: "Course Code", key: "code", width: 15 },
-      { header: "Description", key: "description", width: 40 },
-      { header: "Created At", key: "created", width: 15 },
-    ];
-
-    data.rawData.courses.forEach((course) => {
-      coursesSheet.addRow({
-        code: course.course_code,
-        description: course.description || "N/A",
-        created: new Date(course.created_at).toLocaleDateString(),
-      });
-    });
-
-    // Employees Sheet
-    const employeesSheet = workbook.addWorksheet("Employees");
-    employeesSheet.columns = [
-      { header: "First Name", key: "firstName", width: 15 },
-      { header: "Last Name", key: "lastName", width: 15 },
-      { header: "Role", key: "role", width: 15 },
-      { header: "Contact", key: "contact", width: 15 },
-      { header: "Position", key: "position", width: 20 },
-      { header: "Start Date", key: "created", width: 15 },
-    ];
-
-    data.rawData.employees.forEach((employee) => {
-      employeesSheet.addRow({
-        firstName: employee.first_name,
-        lastName: employee.last_name,
-        role: employee.role,
-        contact: employee.contact_number || "N/A",
-        position: employee.position || "N/A",
-        created: new Date(employee.created_at).toLocaleDateString(),
-      });
-    });
-
-    // Measurements Sheet
-    const measurementsSheet = workbook.addWorksheet("Student Measurements");
-    measurementsSheet.columns = [
-      { header: "Student", key: "student", width: 25 },
-      { header: "Course", key: "course", width: 15 },
-      { header: "Measurement Type", key: "type", width: 20 },
-      { header: "Value (cm)", key: "value", width: 15 },
-    ];
-
-    data.rawData.measurements.forEach((student) => {
-      const measurements = student.measurements || {};
-      Object.entries(measurements).forEach(([type, value]) => {
-        measurementsSheet.addRow({
-          student: `${student.first_name} ${student.last_name}`,
-          course: student.courses?.course_code || "N/A",
-          type: type.replace(/_/g, " ").toLowerCase(),
-          value: value,
-        });
-      });
-    });
-
-    // Uniform Configurations Sheet
-    const configSheet = workbook.addWorksheet("Uniform Configurations");
-    configSheet.columns = [
-      { header: "Course", key: "course", width: 15 },
-      { header: "Gender", key: "gender", width: 10 },
-      { header: "Type", key: "type", width: 15 },
-      { header: "Base Price", key: "price", width: 15 },
-      { header: "Measurement Specs", key: "specs", width: 40 },
-    ];
-
-    data.rawData.uniformConfigs.forEach((config) => {
-      configSheet.addRow({
-        course: config.courses?.course_code || "N/A",
-        gender: config.gender,
-        type: config.wear_type,
-        price: formatCurrency(config.base_price),
-        specs: JSON.stringify(config.measurement_specs),
-      });
-    });
-
-    // Payment Tracking Sheet
-    const paymentSheet = workbook.addWorksheet("Payment History");
-    paymentSheet.columns = [
-      { header: "Order ID", key: "id", width: 10 },
-      { header: "Student", key: "student", width: 25 },
-      { header: "Course", key: "course", width: 15 },
-      { header: "Total Amount", key: "total", width: 15 },
-      { header: "Amount Paid", key: "paid", width: 15 },
-      { header: "Balance", key: "balance", width: 15 },
-      { header: "Payment Status", key: "status", width: 15 },
-      { header: "Payment Date", key: "date", width: 15 },
-      { header: "Updated by", key: "updatedBy", width: 20 },
-    ];
-
-    data.rawData.paymentTracking.forEach((payment) => {
-      paymentSheet.addRow({
-        id: payment.id,
-        student: `${payment.students?.first_name} ${payment.students?.last_name}`,
-        course: payment.students?.courses?.course_code || "N/A",
-        total: formatCurrency(payment.total_amount),
-        paid: formatCurrency(payment.amount_paid),
-        balance: formatCurrency(payment.balance),
-        status: payment.payment_status,
-        date: payment.payment_date
-          ? new Date(payment.payment_date).toLocaleDateString()
-          : "N/A",
-        updatedBy: payment.payment_updated_by || "N/A",
-      });
-    });
-
-    // Style all sheets
-    workbook.eachSheet((sheet) => {
-      sheet.getRow(1).font = { bold: true };
-      sheet.getRow(1).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE0E0E0" },
+    helpers.applyHeaderRow(ordersSheet);
+    
+    // Add order data
+    const orderData = data.rawData.detailedOrders.map(order => {
+      const orderDate = new Date(order.created_at);
+      const dueDate = new Date(order.due_date);
+      const completedDate = order.completed_at ? new Date(order.completed_at) : null;
+      const daysToComplete = completedDate 
+        ? Math.ceil((completedDate - orderDate) / (1000 * 60 * 60 * 24)) 
+        : null;
+      
+      return {
+        student: `${order.students?.first_name || ''} ${order.students?.last_name || ''}`,
+        orderDate: orderDate,
+        dueDate: dueDate,
+        status: order.status || '',
+        amount: order.total_amount || 0,
+        amountPaid: order.amount_paid || 0,
+        balance: order.balance || 0,
+        daysToComplete: daysToComplete !== null ? daysToComplete : 'N/A'
       };
-
-      // Add borders to all cells
-      sheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-        });
+    });
+    
+    // Track section boundaries
+    const orderDataStartRow = 2;
+    
+    orderData.forEach(order => {
+      ordersSheet.addRow(order);
+    });
+    
+    const orderDataEndRow = ordersSheet.rowCount;
+    
+    // Add totals row with all relevant columns calculated - using section boundaries
+    helpers.addTotalRow(ordersSheet, 8, [5, 6, 7], orderDataStartRow, orderDataEndRow);
+    
+    // Add order status section - track the section boundaries
+    const statusHeaderRow = helpers.addSectionHeader(ordersSheet, "ORDER STATUS BREAKDOWN", 8);
+    
+    // Add status header row
+    const statusTableHeaderRow = statusHeaderRow + 1;
+    ordersSheet.addRow(["Status", "Count", "Percentage", "", "", "", "", ""]);
+    helpers.applyHeaderRow(ordersSheet, statusTableHeaderRow);
+    
+    // Status data starts in the next row
+    const statusDataStartRow = statusTableHeaderRow + 1;
+    
+    // Calculate status breakdown
+    const statusCounts = {};
+    orderData.forEach(order => {
+      statusCounts[order.status] = (statusCounts[order.status] || 0) + 1;
+    });
+    
+    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    
+    Object.entries(statusCounts).forEach(([status, count]) => {
+      const percentage = total > 0 ? (count / total * 100) : 0;
+      
+      // Explicitly create a row with proper numeric types to avoid date formatting
+      const row = ordersSheet.addRow([
+        status, 
+        Number(count),   // Explicitly use Number type for count
+        percentage
+      ]);
+      
+      // Apply percentage format to the percentage cell
+      row.getCell(3).numFmt = '0.00"%"';
+      
+      // Ensure count is numeric with whole number format
+      row.getCell(2).numFmt = '0';
+    });
+    
+    const statusDataEndRow = ordersSheet.rowCount;
+    
+    // Add totals for status counts - only for this section
+    helpers.addTotalRow(ordersSheet, 3, [2], statusDataStartRow, statusDataEndRow);
+    
+    // 3. FINANCIAL ANALYSIS SHEET
+    const financialSheet = workbook.addWorksheet("Financial Analysis");
+    financialSheet.columns = [
+      { header: "Month", key: "month", width: 15, style: styles.cell },
+      { header: "Orders", key: "orders", width: 10, style: styles.cell },
+      { header: "Total Amount", key: "totalAmount", width: 15, style: styles.currency },
+      { header: "Amount Paid", key: "amountPaid", width: 15, style: styles.currency },
+      { header: "Balance", key: "balance", width: 15, style: styles.currency },
+      { header: "Completion Rate", key: "completionRate", width: 15, style: styles.percentage }
+    ];
+    helpers.applyHeaderRow(financialSheet);
+    
+    // Group orders by month
+    const monthlyData = {};
+    const monthOrder = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    data.rawData.detailedOrders.forEach(order => {
+      const date = new Date(order.created_at);
+      const monthYear = `${monthOrder[date.getMonth()]} ${date.getFullYear()}`;
+      
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          orders: 0,
+          totalAmount: 0,
+          amountPaid: 0,
+          balance: 0,
+          completed: 0,
+          totalOrders: 0
+        };
+      }
+      
+      monthlyData[monthYear].orders++;
+      monthlyData[monthYear].totalAmount += Number(order.total_amount || 0);
+      monthlyData[monthYear].amountPaid += Number(order.amount_paid || 0);
+      monthlyData[monthYear].balance += Number(order.balance || 0);
+      monthlyData[monthYear].totalOrders++;
+      
+      if (order.status === 'completed') {
+        monthlyData[monthYear].completed++;
+      }
+    });
+    
+    // Sort months chronologically
+    const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
+      const [aMonth, aYear] = a.split(' ');
+      const [bMonth, bYear] = b.split(' ');
+      
+      if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+      return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
+    });
+    
+    // Financial data starts in row 2
+    const financialDataStartRow = 2;
+    
+    // Add monthly data rows
+    sortedMonths.forEach(month => {
+      const data = monthlyData[month];
+      const completionRate = data.totalOrders > 0 ? (data.completed / data.totalOrders * 100) : 0;
+      
+      financialSheet.addRow({
+        month,
+        orders: data.orders,
+        totalAmount: data.totalAmount,
+        amountPaid: data.amountPaid,
+        balance: data.balance,
+        completionRate
       });
     });
-
-    // Generate and download the file
+    
+    const financialDataEndRow = financialSheet.rowCount;
+    
+    // Add totals with proper formatting for all numeric columns
+    helpers.addTotalRow(financialSheet, 6, [2, 3, 4, 5], financialDataStartRow, financialDataEndRow);
+    
+    // 4. STUDENT DEMOGRAPHICS SHEET
+    const studentsSheet = workbook.addWorksheet("Student Demographics");
+    studentsSheet.columns = [
+      { header: "Course", key: "course", width: 15, style: styles.cell },
+      { header: "Male Students", key: "male", width: 15, style: styles.cell },
+      { header: "Female Students", key: "female", width: 15, style: styles.cell },
+      { header: "Total Students", key: "total", width: 15, style: styles.cell },
+      { header: "Orders Placed", key: "orders", width: 15, style: styles.cell },
+      { header: "Revenue Generated", key: "revenue", width: 20, style: styles.currency }
+    ];
+    helpers.applyHeaderRow(studentsSheet);
+    
+    // Calculate course demographics and orders
+    const courseStats = {};
+    
+    // Count students by course and gender
+    data.rawData.detailedStudents.forEach(student => {
+      const course = student.courses?.course_code || 'Unknown';
+      
+      if (!courseStats[course]) {
+        courseStats[course] = {
+          male: 0,
+          female: 0,
+          total: 0,
+          orders: 0,
+          revenue: 0
+        };
+      }
+      
+      if (student.gender?.toLowerCase() === 'male') {
+        courseStats[course].male++;
+      } else if (student.gender?.toLowerCase() === 'female') {
+        courseStats[course].female++;
+      }
+      
+      courseStats[course].total++;
+    });
+    
+    // Count orders by course
+    data.rawData.detailedOrders.forEach(order => {
+      const course = order.students?.courses?.course_code || 'Unknown';
+      if (courseStats[course]) {
+        courseStats[course].orders++;
+        courseStats[course].revenue += Number(order.amount_paid || 0);
+      }
+    });
+    
+    // Course data starts at row 2
+    const courseDataStartRow = 2;
+    
+    // Add course data rows
+    Object.entries(courseStats).forEach(([course, stats]) => {
+      studentsSheet.addRow({
+        course,
+        male: stats.male,
+        female: stats.female,
+        total: stats.total,
+        orders: stats.orders,
+        revenue: stats.revenue
+      });
+    });
+    
+    const courseDataEndRow = studentsSheet.rowCount;
+    
+    // Add totals for all numeric columns
+    helpers.addTotalRow(studentsSheet, 6, [2, 3, 4, 5, 6], courseDataStartRow, courseDataEndRow);
+    
+    // Add gender distribution section
+    const genderHeaderRow = helpers.addSectionHeader(studentsSheet, "GENDER DISTRIBUTION", 6);
+    
+    // Add gender header row
+    const genderTableHeaderRow = genderHeaderRow + 1;
+    studentsSheet.addRow(["Gender", "Count", "Percentage", "", "", ""]);
+    helpers.applyHeaderRow(studentsSheet, genderTableHeaderRow);
+    
+    // Gender data starts after the header
+    const genderDataStartRow = genderTableHeaderRow + 1;
+    
+    // Calculate gender totals
+    const genderData = data.studentAnalytics.genderDistribution;
+    const totalStudents = Object.values(genderData).reduce((sum, val) => sum + val, 0);
+    
+    // Add gender data rows
+    Object.entries(genderData).forEach(([gender, count]) => {
+      const percentage = totalStudents > 0 ? (count / totalStudents * 100) : 0;
+      const row = studentsSheet.addRow([gender, count, percentage]);
+      row.getCell(3).numFmt = '0.00"%"';
+    });
+    
+    const genderDataEndRow = studentsSheet.rowCount;
+    
+    // Add gender totals - only for the gender section
+    helpers.addTotalRow(studentsSheet, 3, [2], genderDataStartRow, genderDataEndRow);
+    
+    // 5. PAYMENT ANALYSIS SHEET
+    const paymentSheet = workbook.addWorksheet("Payment Analysis");
+    paymentSheet.columns = [
+      { header: "Order ID", key: "id", width: 10, style: styles.cell },
+      { header: "Student", key: "student", width: 25, style: styles.cell },
+      { header: "Total Amount", key: "total", width: 15, style: styles.currency },
+      { header: "Amount Paid", key: "paid", width: 15, style: styles.currency },
+      { header: "Balance", key: "balance", width: 15, style: styles.currency },
+      { header: "Payment Status", key: "status", width: 15, style: styles.cell },
+      { header: "Payment Date", key: "date", width: 15, style: styles.date }
+    ];
+    helpers.applyHeaderRow(paymentSheet);
+    
+    // Payment data starts at row 2
+    const paymentDataStartRow = 2;
+    
+    // Add payment data
+    data.rawData.paymentTracking.forEach(payment => {
+      const row = paymentSheet.addRow({
+        id: payment.id,
+        student: `${payment.students?.first_name || ''} ${payment.students?.last_name || ''}`,
+        total: Number(payment.total_amount || 0),
+        paid: Number(payment.amount_paid || 0),
+        balance: Number(payment.balance || 0),
+        status: payment.payment_status || '',
+        date: payment.payment_date ? new Date(payment.payment_date) : null
+      });
+    });
+    
+    const paymentDataEndRow = paymentSheet.rowCount;
+    
+    // Add payment totals
+    helpers.addTotalRow(paymentSheet, 7, [3, 4, 5], paymentDataStartRow, paymentDataEndRow);
+    
+    // Add payment status section
+    const statusSectionHeaderRow = helpers.addSectionHeader(paymentSheet, "PAYMENT STATUS BREAKDOWN", 7);
+    
+    // Add payment status header
+    const statusSectionTableHeaderRow = statusSectionHeaderRow + 1;
+    paymentSheet.addRow(["Status", "Count", "Percentage", "Total Value", "", "", ""]);
+    helpers.applyHeaderRow(paymentSheet, statusSectionTableHeaderRow);
+    
+    // Status section data starts after header
+    const paymentStatusDataStartRow = statusSectionTableHeaderRow + 1;
+    
+    // Calculate payment status stats
+    const paymentStatusCounts = {};
+    const paymentStatusValues = {};
+    
+    data.rawData.paymentTracking.forEach(payment => {
+      const status = payment.payment_status || 'Unknown';
+      paymentStatusCounts[status] = (paymentStatusCounts[status] || 0) + 1;
+      paymentStatusValues[status] = (paymentStatusValues[status] || 0) + Number(payment.amount_paid || 0);
+    });
+    
+    const totalPayments = Object.values(paymentStatusCounts).reduce((sum, count) => sum + count, 0);
+    
+    // Add payment status data
+    Object.entries(paymentStatusCounts).forEach(([status, count]) => {
+      const percentage = totalPayments > 0 ? (count / totalPayments * 100) : 0;
+      const value = paymentStatusValues[status];
+      
+      const row = paymentSheet.addRow([status, count, percentage, value]);
+      row.getCell(3).numFmt = '0.00"%"';
+      row.getCell(4).numFmt = '"₱"#,##0.00';
+    });
+    
+    const paymentStatusDataEndRow = paymentSheet.rowCount;
+    
+    // Add payment status totals - only for this section
+    helpers.addTotalRow(paymentSheet, 4, [2, 4], paymentStatusDataStartRow, paymentStatusDataEndRow);
+    
+    // 6. EMPLOYEE PERFORMANCE SHEET
+    const employeesSheet = workbook.addWorksheet("Employee Performance");
+    employeesSheet.columns = [
+      { header: "Employee", key: "employee", width: 25, style: styles.cell },
+      { header: "Role", key: "role", width: 15, style: styles.cell },
+      { header: "Orders Assigned", key: "assigned", width: 15, style: styles.cell },
+      { header: "Orders Completed", key: "completed", width: 17, style: styles.cell },
+      { header: "Completion Rate", key: "completionRate", width: 15, style: styles.percentage },
+      { header: "Average Days", key: "avgDays", width: 15, style: styles.cell }
+    ];
+    helpers.applyHeaderRow(employeesSheet);
+    
+    // Employee data starts at row 2
+    const employeeDataStartRow = 2;
+    
+    // Calculate employee stats
+    const employeeStats = {};
+    
+    // Initialize with basic employee data
+    data.rawData.employees.forEach(employee => {
+      const name = `${employee.first_name || ''} ${employee.last_name || ''}`;
+      if (!name.trim()) return;
+      
+      employeeStats[name] = {
+        role: employee.role || 'Staff',
+        assigned: 0,
+        completed: 0,
+        totalDays: 0
+      };
+    });
+    
+    // Calculate order stats by employee
+    data.rawData.detailedOrders.filter(o => o.profiles).forEach(order => {
+      if (!order.profiles) return;
+      
+      const employee = `${order.profiles.first_name || ''} ${order.profiles.last_name || ''}`;
+      if (!employee.trim()) return;
+      
+      if (!employeeStats[employee]) {
+        employeeStats[employee] = {
+          role: 'Staff',
+          assigned: 0,
+          completed: 0,
+          totalDays: 0
+        };
+      }
+      
+      employeeStats[employee].assigned++;
+      
+      if (order.status === 'completed') {
+        employeeStats[employee].completed++;
+        
+        if (order.created_at && order.completed_at) {
+          const createdDate = new Date(order.created_at);
+          const completedDate = new Date(order.completed_at);
+          const days = Math.max(0, Math.ceil((completedDate - createdDate) / (1000 * 60 * 60 * 24)));
+          
+          employeeStats[employee].totalDays += days;
+        }
+      }
+    });
+    
+    // Add employee data rows
+    Object.entries(employeeStats)
+      .filter(([_, stats]) => stats.assigned > 0)
+      .sort((a, b) => b[1].completed - a[1].completed)
+      .forEach(([employee, stats]) => {
+        const completionRate = stats.assigned > 0 ? (stats.completed / stats.assigned * 100) : 0;
+        const avgDays = stats.completed > 0 ? (stats.totalDays / stats.completed) : 0;
+        
+        employeesSheet.addRow({
+          employee,
+          role: stats.role,
+          assigned: stats.assigned,
+          completed: stats.completed,
+          completionRate,
+          avgDays: avgDays.toFixed(1)
+        });
+      });
+    
+    const employeeDataEndRow = employeesSheet.rowCount;
+    
+    // Add employee totals
+    helpers.addTotalRow(employeesSheet, 6, [3, 4], employeeDataStartRow, employeeDataEndRow);
+    
+    // 7. TIME ANALYTICS SHEET
+    const timeSheet = workbook.addWorksheet("Time Analytics");
+    timeSheet.columns = [
+      { header: "Time Period", key: "period", width: 20, style: styles.cell },
+      { header: "Orders", key: "orders", width: 15, style: styles.cell },
+      { header: "Completed", key: "completed", width: 15, style: styles.cell },
+      { header: "Completion Rate", key: "completionRate", width: 15, style: styles.percentage },
+      { header: "Avg Completion Days", key: "avgDays", width: 20, style: styles.cell },
+      { header: "Revenue", key: "revenue", width: 15, style: styles.currency }
+    ];
+    helpers.applyHeaderRow(timeSheet);
+    
+    // Daily busy data
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayStats = {};
+    
+    // Initialize days
+    dayNames.forEach(day => {
+      dayStats[day] = {
+        orders: 0,
+        completed: 0,
+        totalDays: 0,
+        revenue: 0
+      };
+    });
+    
+    // Calculate stats by day of week
+    data.rawData.detailedOrders.forEach(order => {
+      if (!order.created_at) return;
+      
+      const date = new Date(order.created_at);
+      const day = dayNames[date.getDay()];
+      
+      dayStats[day].orders++;
+      dayStats[day].revenue += Number(order.amount_paid || 0);
+      
+      if (order.status === 'completed') {
+        dayStats[day].completed++;
+        
+        if (order.completed_at) {
+          const completedDate = new Date(order.completed_at);
+          const days = Math.max(0, Math.ceil((completedDate - date) / (1000 * 60 * 60 * 24)));
+          dayStats[day].totalDays += days;
+        }
+      }
+    });
+    
+    // Add day of week header
+    const dayHeaderRow = helpers.addSectionHeader(timeSheet, "ORDERS BY DAY OF WEEK", 6);
+    
+    // Add day header row
+    const dayTableHeaderRow = dayHeaderRow + 1;
+    timeSheet.addRow(["Day", "Orders", "Completed", "Completion Rate", "Avg Days", "Revenue"]);
+    helpers.applyHeaderRow(timeSheet, dayTableHeaderRow);
+    
+    // Day data starts after header
+    const dayDataStartRow = dayTableHeaderRow + 1;
+    
+    // Add day data rows
+    dayNames.forEach(day => {
+      const stats = dayStats[day];
+      const completionRate = stats.orders > 0 ? (stats.completed / stats.orders * 100) : 0;
+      const avgDays = stats.completed > 0 ? (stats.totalDays / stats.completed) : 0;
+      
+      timeSheet.addRow({
+        period: day,
+        orders: Number(stats.orders), // Ensure it's a number
+        completed: Number(stats.completed), // Ensure it's a number
+        completionRate,
+        avgDays: avgDays.toFixed(1),
+        revenue: stats.revenue
+      });
+    });
+    
+    const dayDataEndRow = timeSheet.rowCount;
+    
+    // Add day totals - only for the day section
+    helpers.addTotalRow(timeSheet, 6, [2, 3, 5, 6], dayDataStartRow, dayDataEndRow);
+    
+    // Add DAILY analysis section
+    const dailyHeaderRow = helpers.addSectionHeader(timeSheet, "DAILY TIME PERFORMANCE (LAST 30 DAYS)", 6);
+    
+    // Add daily header row
+    const dailyTableHeaderRow = dailyHeaderRow + 1;
+    timeSheet.addRow(["Date", "Orders", "Completed", "Completion Rate", "Avg Days", "Revenue"]);
+    helpers.applyHeaderRow(timeSheet, dailyTableHeaderRow);
+    
+    // Process daily data for the last 30 days
+    const now = new Date();
+    const dailyStats = {};
+    
+    // Initialize data for last 30 days
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateKey = date.toISOString().split('T')[0];
+      
+      dailyStats[dateKey] = {
+        orders: 0,
+        completed: 0,
+        totalDays: 0,
+        revenue: 0
+      };
+    }
+    
+    // Populate daily stats
+    data.rawData.detailedOrders.forEach(order => {
+      if (!order.created_at) return;
+      
+      const orderDate = new Date(order.created_at);
+      const dateKey = orderDate.toISOString().split('T')[0];
+      
+      // Only include if within the last 30 days
+      if (dailyStats[dateKey]) {
+        dailyStats[dateKey].orders++;
+        dailyStats[dateKey].revenue += Number(order.amount_paid || 0);
+        
+        if (order.status === 'completed' && order.completed_at) {
+          dailyStats[dateKey].completed++;
+          
+          const completedDate = new Date(order.completed_at);
+          const days = Math.max(0, Math.ceil((completedDate - orderDate) / (1000 * 60 * 60 * 24)));
+          dailyStats[dateKey].totalDays += days;
+        }
+      }
+    });
+    
+    // Daily data starts after header
+    const dailyDataStartRow = dailyTableHeaderRow + 1;
+    
+    // Add daily data rows - last 30 days
+    Object.entries(dailyStats)
+      .sort(([a], [b]) => a.localeCompare(b)) // Sort by date
+      .forEach(([date, stats]) => {
+        const completionRate = stats.orders > 0 ? (stats.completed / stats.orders * 100) : 0;
+        const avgDays = stats.completed > 0 ? (stats.totalDays / stats.completed) : 0;
+        
+        timeSheet.addRow({
+          period: date,
+          orders: Number(stats.orders),
+          completed: Number(stats.completed),
+          completionRate,
+          avgDays: avgDays.toFixed(1),
+          revenue: stats.revenue
+        });
+      });
+    
+    const dailyDataEndRow = timeSheet.rowCount;
+    
+    // Add daily totals
+    helpers.addTotalRow(timeSheet, 6, [2, 3, 5, 6], dailyDataStartRow, dailyDataEndRow);
+    
+    // Add monthly analysis section
+    const monthHeaderRow = helpers.addSectionHeader(timeSheet, "MONTHLY TIME PERFORMANCE", 6);
+    
+    // Add monthly header row
+    const monthTableHeaderRow = monthHeaderRow + 1;
+    timeSheet.addRow(["Month", "Orders", "Completed", "Completion Rate", "Avg Days", "Revenue"]);
+    helpers.applyHeaderRow(timeSheet, monthTableHeaderRow);
+    
+    // Month data starts after header
+    const monthDataStartRow = monthTableHeaderRow + 1;
+    
+    // Use the previously calculated monthly data
+    sortedMonths.forEach(month => {
+      const stats = monthlyData[month];
+      const completionRate = stats.totalOrders > 0 ? (stats.completed / stats.totalOrders * 100) : 0;
+      
+      // Calculate average days for completed orders in this month
+      let avgDays = 0;
+      let totalDays = 0;
+      let totalCompleted = 0;
+      
+      data.rawData.detailedOrders.forEach(order => {
+        if (order.status !== 'completed' || !order.created_at || !order.completed_at) return;
+        
+        const createdDate = new Date(order.created_at);
+        const monthYear = `${monthOrder[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
+        
+        if (monthYear === month) {
+          const completedDate = new Date(order.completed_at);
+          const days = Math.max(0, Math.ceil((completedDate - createdDate) / (1000 * 60 * 60 * 24)));
+          totalDays += days;
+          totalCompleted++;
+        }
+      });
+      
+      avgDays = totalCompleted > 0 ? (totalDays / totalCompleted) : 0;
+      
+      timeSheet.addRow({
+        period: month,
+        orders: Number(stats.totalOrders),
+        completed: Number(stats.completed),
+        completionRate,
+        avgDays: avgDays.toFixed(1),
+        revenue: stats.amountPaid
+      });
+    });
+    
+    const monthDataEndRow = timeSheet.rowCount;
+    
+    // Add monthly totals - only for the month section
+    helpers.addTotalRow(timeSheet, 6, [2, 3, 5, 6], monthDataStartRow, monthDataEndRow);
+    
+    // Add YEARLY analysis section
+    const yearlyHeaderRow = helpers.addSectionHeader(timeSheet, "YEARLY TIME PERFORMANCE", 6);
+    
+    // Add yearly header row
+    const yearlyTableHeaderRow = yearlyHeaderRow + 1;
+    timeSheet.addRow(["Year", "Orders", "Completed", "Completion Rate", "Avg Days", "Revenue"]);
+    helpers.applyHeaderRow(timeSheet, yearlyTableHeaderRow);
+    
+    // Calculate yearly statistics
+    const yearlyStats = {};
+    
+    // Initialize with current year and previous years
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear - 2; year <= currentYear; year++) {
+      yearlyStats[year] = {
+        orders: 0,
+        completed: 0,
+        totalDays: 0,
+        revenue: 0
+      };
+    }
+    
+    // Populate yearly stats
+    data.rawData.detailedOrders.forEach(order => {
+      if (!order.created_at) return;
+      
+      const orderYear = new Date(order.created_at).getFullYear();
+      
+      if (yearlyStats[orderYear]) {
+        yearlyStats[orderYear].orders++;
+        yearlyStats[orderYear].revenue += Number(order.amount_paid || 0);
+        
+        if (order.status === 'completed') {
+          yearlyStats[orderYear].completed++;
+          
+          if (order.completed_at) {
+            const createdDate = new Date(order.created_at);
+            const completedDate = new Date(order.completed_at);
+            const days = Math.max(0, Math.ceil((completedDate - createdDate) / (1000 * 60 * 60 * 24)));
+            yearlyStats[orderYear].totalDays += days;
+          }
+        }
+      }
+    });
+    
+    // Yearly data starts after header
+    const yearlyDataStartRow = yearlyTableHeaderRow + 1;
+    
+    // Add yearly data rows
+    Object.entries(yearlyStats)
+      .sort(([a], [b]) => Number(a) - Number(b)) // Sort by year
+      .forEach(([year, stats]) => {
+        const completionRate = stats.orders > 0 ? (stats.completed / stats.orders * 100) : 0;
+        const avgDays = stats.completed > 0 ? (stats.totalDays / stats.completed) : 0;
+        
+        timeSheet.addRow({
+          period: year.toString(),
+          orders: Number(stats.orders),
+          completed: Number(stats.completed),
+          completionRate,
+          avgDays: avgDays.toFixed(1),
+          revenue: stats.revenue
+        });
+      });
+    
+    const yearlyDataEndRow = timeSheet.rowCount;
+    
+    // Add yearly totals
+    helpers.addTotalRow(timeSheet, 6, [2, 3, 5, 6], yearlyDataStartRow, yearlyDataEndRow);
+    
+    // 8. COURSE PERFORMANCE SHEET
+    const courseSheet = workbook.addWorksheet("Course Performance");
+    courseSheet.columns = [
+      { header: "Course Code", key: "code", width: 15, style: styles.cell },
+      { header: "Description", key: "description", width: 30, style: styles.cell },
+      { header: "Students", key: "students", width: 15, style: styles.cell },
+      { header: "Orders", key: "orders", width: 15, style: styles.cell },
+      { header: "Completed", key: "completed", width: 15, style: styles.cell },
+      { header: "Completion Rate", key: "completionRate", width: 20, style: styles.percentage },
+      { header: "Revenue", key: "revenue", width: 15, style: styles.currency }
+    ];
+    helpers.applyHeaderRow(courseSheet);
+    
+    // Course performance data starts at row 2
+    const coursePerformanceDataStartRow = 2;
+    
+    // Prepare course data
+    const courseData = {};
+    
+    // Get course descriptions
+    data.rawData.courses.forEach(course => {
+      const code = course.course_code || 'Unknown';
+      
+      courseData[code] = {
+        code,
+        description: course.description || code,
+        students: 0,
+        orders: 0,
+        completed: 0,
+        revenue: 0
+      };
+    });
+    
+    // Add student counts
+    data.rawData.detailedStudents.forEach(student => {
+      const courseCode = student.courses?.course_code || 'Unknown';
+      
+      if (!courseData[courseCode]) {
+        courseData[courseCode] = {
+          code: courseCode,
+          description: courseCode,
+          students: 0,
+          orders: 0,
+          completed: 0,
+          revenue: 0
+        };
+      }
+      
+      courseData[courseCode].students++;
+    });
+    
+    // Add order data
+    data.rawData.detailedOrders.forEach(order => {
+      const courseCode = order.students?.courses?.course_code || 'Unknown';
+      
+      if (!courseData[courseCode]) {
+        courseData[courseCode] = {
+          code: courseCode,
+          description: courseCode,
+          students: 0,
+          orders: 0,
+          completed: 0,
+          revenue: 0
+        };
+      }
+      
+      courseData[courseCode].orders++;
+      courseData[courseCode].revenue += Number(order.amount_paid || 0);
+      
+      if (order.status === 'completed') {
+        courseData[courseCode].completed++;
+      }
+    });
+    
+    // Add course data rows
+    Object.values(courseData).forEach(course => {
+      const completionRate = course.orders > 0 ? (course.completed / course.orders * 100) : 0;
+      
+      courseSheet.addRow({
+        code: course.code,
+        description: course.description,
+        students: course.students,
+        orders: course.orders,
+        completed: course.completed,
+        completionRate,
+        revenue: course.revenue
+      });
+    });
+    
+    const coursePerformanceDataEndRow = courseSheet.rowCount;
+    
+    // Add course totals
+    helpers.addTotalRow(courseSheet, 7, [3, 4, 5, 7], coursePerformanceDataStartRow, coursePerformanceDataEndRow);
+    
+    // Apply final formatting to all sheets
+    workbook.eachSheet(sheet => {
+      helpers.autoSizeColumns(sheet);
+      helpers.applyAlternatingRows(sheet);
+      
+      // Ensure all cells have left alignment
+      for (let rowIndex = 2; rowIndex <= sheet.rowCount; rowIndex++) {
+        const row = sheet.getRow(rowIndex);
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          if (!cell.style.alignment) {
+            cell.style = Object.assign({}, cell.style, { alignment: { horizontal: 'left' } });
+          } else {
+            cell.style.alignment.horizontal = 'left';
+          }
+        });
+      }
+    });
+    
+    // Generate and download file
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    const blob = new Blob([buffer], { 
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
     });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dashboard-report-${new Date().toISOString().split("T")[0]}.xlsx`;
+    a.download = `richred-analytics-${new Date().toISOString().split("T")[0]}.xlsx`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -1420,7 +2144,7 @@
 
       <!-- Time-based Analytics Controls - Moved below Recent Orders and made sticky -->
       <div
-        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6 sticky top-0 z-10"
+        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6 border-grey-300 border-2"
       >
         <h2 class="text-lg font-semibold text-gray-700 mb-2 sm:mb-0">
           Time Analytics
@@ -1445,10 +2169,10 @@
       </div>
 
       <!-- Charts Grid -->
-      <div class="space-y-6">
+      <div class="space-y-6 ">
         <!-- Revenue Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div class="bg-white p-5 rounded-xl shadow-sm">
+          <div class="bg-white p-5 rounded-xl shadow-sm border-grey-300 border-2">
             <div
               class="flex flex-col sm:flex-row justify-between sm:items-center mb-4"
             >
@@ -1471,7 +2195,7 @@
             </div>
           </div>
 
-          <div class="bg-white p-5 rounded-xl shadow-sm">
+          <div class="bg-white p-5 rounded-xl shadow-sm border-grey-300 border-2">
             <div>
               <h3 class="font-medium text-gray-800">Average Order Value</h3>
               <p class="text-xs text-gray-500 mt-1">
@@ -1483,6 +2207,14 @@
             </div>
           </div>
         </div>
+
+        <div
+        class="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white p-4 rounded-xl shadow-sm mb-6 border-grey-300 border-2"
+      >
+        <h2 class="text-lg font-semibold text-gray-700 mb-2 sm:mb-0">
+          Additional Analytics
+        </h2>
+      </div>
 
         <!-- Order Status Section -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1696,20 +2428,5 @@
 
   aside.md\:overflow-y-auto::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
-  }
-
-  /* Style for sticky time analytics bar */
-  .sticky {
-    position: sticky;
-    top: 0;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 20;
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
-  }
-
-  /* Add subtle animation when scrolling */
-  .sticky:not(:hover) {
-    transform: translateY(0);
   }
 </style>
