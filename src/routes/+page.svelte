@@ -229,7 +229,7 @@
                   ></path>
                 </svg>
               {:else}
-                Sign in
+                Log in
               {/if}
             </button>
           </form>
