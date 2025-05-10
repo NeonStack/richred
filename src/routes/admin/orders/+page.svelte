@@ -119,7 +119,7 @@
   );
 
   $: filteredStudents = data.students.filter((student) =>
-    `${student.first_name} ${student.last_name} ${student.course?.course_code}`
+    `${student.id} ${student.first_name} ${student.last_name} ${student.course?.course_code}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -479,7 +479,7 @@
     selectedStudent = data.students.find((s) => s.id === order.student.id);
     selectedUniformType = order.uniform_type;
     selectedDueDate = order.due_date;
-    searchTerm = `${order.student.first_name} ${order.student.last_name} (${order.student.course?.course_code})`; // Add this to show student name
+    searchTerm = `ID: ${order.student.id} - ${order.student.first_name} ${order.student.last_name} (${order.student.course?.course_code})`; // Add this to show student name
     showCreateModal = true;
   }
 
@@ -774,7 +774,7 @@
           <input
             type="text"
             bind:value={searchTerm}
-            placeholder="Search by name or course..."
+            placeholder="Search by ID, name or course..."
             class="w-full p-2 pr-8 border rounded"
           />
         </div>
@@ -792,9 +792,9 @@
                 on:click={() => selectStudent(student)}
               >
                 <div class="flex-1">
-                  <div class="font-semibold">
-                    {student.first_name}
-                    {student.last_name}
+                  <div class="font-semibold flex items-center gap-2">
+                    <span class="text-primary bg-primary/10 px-2 py-0.5 rounded text-sm">ID: {student.id}</span>
+                    {student.first_name} {student.last_name}
                   </div>
                   <div class="text-sm text-gray-600">
                     <span class="inline-block bg-gray-100 px-2 py-0.5 rounded">
@@ -862,7 +862,7 @@
                     <input
                       type="text"
                       bind:value={searchTerm}
-                      placeholder="Click to search customers..."
+                      placeholder="Click to search customers by ID or name..."
                       class="studentSearch w-full p-2 border rounded {selectedStudent
                         ? 'bg-gray-50'
                         : ''}"
@@ -885,14 +885,14 @@
                               class="p-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
                               on:click={() => {
                                 selectedStudent = student;
-                                searchTerm = `${student.first_name} ${student.last_name} (${student.course?.course_code})`;
+                                searchTerm = `ID: ${student.id} - ${student.first_name} ${student.last_name} (${student.course?.course_code})`;
                                 isStudentDropdownOpen = false;
                               }}
                             >
                               <div>
-                                <div class="font-semibold">
-                                  {student.first_name}
-                                  {student.last_name}
+                                <div class="font-semibold flex items-center gap-2">
+                                  <span class="text-primary bg-primary/10 px-2 py-0.5 rounded text-sm">ID: {student.id}</span>
+                                  {student.first_name} {student.last_name}
                                 </div>
                                 <div class="text-sm text-gray-600">
                                   <span
@@ -979,6 +979,13 @@
                 <h3 class="text-lg font-semibold mb-4 text-primary">
                   Student Details
                 </h3>
+                <div class="grid grid-cols-1 gap-4 text-sm mb-4">
+                  <div class="flex items-center">
+                    <span class="text-primary bg-primary/10 px-2 py-1 rounded font-medium">
+                      Student ID: {selectedStudent.id}
+                    </span>
+                  </div>
+                </div>
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span class="text-gray-600">Course:</span>
