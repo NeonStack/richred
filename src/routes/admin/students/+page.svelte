@@ -378,6 +378,32 @@
             <tr class="bg-gray-50">
               <th
                 class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
+                on:click={() => sort("id")}
+              >
+                <div class="flex items-center gap-1">
+                  Student ID
+                  {#if sortField === "id"}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  {/if}
+                </div>
+              </th>
+              <th
+                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => sort("first_name")}
               >
                 <div class="flex items-center gap-1">
@@ -516,6 +542,7 @@
           <tbody class="divide-y divide-gray-100">
             {#each paginatedStudents as student}
               <tr class="hover:bg-gray-50 transition-colors">
+                <td class="p-4">{student.id}</td>
                 <td class="p-4">{student.first_name}</td>
                 <td class="p-4">{student.last_name}</td>
                 <td class="p-4">
@@ -556,7 +583,7 @@
               </tr>
             {:else}
               <tr>
-                <td colspan="7" class="py-8 text-center text-gray-500">
+                <td colspan="8" class="py-8 text-center text-gray-500">
                   <div class="flex flex-col items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

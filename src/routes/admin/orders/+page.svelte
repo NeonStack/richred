@@ -735,6 +735,21 @@
       }
     }, 0);
   }
+
+  // Add this utility function for formatting column names
+  function formatColumnName(columnName) {
+    // Special case for ID/id
+    if (columnName.toLowerCase() === "id" || columnName.toLowerCase() === "order id") 
+      return "Order ID";
+    if (columnName.toLowerCase() === "student id") 
+      return "Student ID";
+      
+    // Split by underscore, capitalize each word, and join with spaces
+    return columnName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
 </script>
 
 <!-- Student Search Modal -->
@@ -1368,6 +1383,9 @@
             <!-- Customer Info -->
             <div class="w-full">
               <div>
+                Customer ID: {orderForReceipt.student?.id}
+              </div>
+              <div>
                 Customer: {orderForReceipt.student?.first_name}
                 {orderForReceipt.student?.last_name}
               </div>
@@ -1744,26 +1762,15 @@
           {#if activeTab === "payments"}
             <thead>
               <tr class="bg-gray-50">
-                {#each ["id", "student", "status", "total_amount", "amount_paid", "balance", "payment_date", "payment_status", "payment_updated_by"] as field}
+                {#each ["Order ID", "student", "status", "total_amount", "amount_paid", "balance", "payment_date", "payment_status", "payment_updated_by"] as field}
                   <th
                     class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
-                    on:click={() => sort(field.toLowerCase())}
+                    on:click={() => sort(field === "Order ID" ? "id" : field.toLowerCase())}
                   >
                     <div class="flex items-center gap-1">
-                      {field === "total_amount"
-                        ? "Total"
-                        : field === "amount_paid"
-                          ? "Paid"
-                          : field === "payment_date"
-                            ? "Last Payment"
-                            : field === "payment_status"
-                              ? "Payment Status"
-                              : field === "payment_updated_by"
-                                ? "Updated By"
-                                : field.charAt(0).toUpperCase() +
-                                  field.slice(1).replace("_", " ")}
+                      {formatColumnName(field)}
 
-                      {#if sortField === field.toLowerCase()}
+                      {#if sortField === (field === "Order ID" ? "id" : field.toLowerCase())}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           class="h-4 w-4 {sortDirection === 'asc'
@@ -1784,18 +1791,19 @@
                     </div>
                   </th>
                 {/each}
-                <th class="p-4 text-right font-semibold text-gray-600"
-                  >Actions</th
-                >
+                <th class="p-4 text-right font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {#each paginatedOrders.payments as order}
                 <tr class="border-b hover:bg-muted">
                   <td class="p-2">{order.id}</td>
-                  <td class="p-2"
-                    >{order.student?.first_name} {order.student?.last_name}</td
-                  >
+                  <td class="p-2">
+                    <div class="flex flex-col">
+                      <span class="text-xs text-gray-500">ID: {order.student?.id}</span>
+                      <span>{order.student?.first_name} {order.student?.last_name}</span>
+                    </div>
+                  </td>
                   <td class="p-2">
                     <span
                       class={`px-2 py-1 rounded-full text-sm
@@ -1858,21 +1866,16 @@
           {:else if activeTab === "pending"}
             <thead>
               <tr class="bg-gray-50">
-                <th class="p-4 text-left font-semibold text-gray-600 w-12"
-                  >Select</th
-                >
-                {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
+                <th class="p-4 text-left font-semibold text-gray-600 w-12">Select</th>
+                {#each ["Order ID", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
                     class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
-                    on:click={() => sort(field)}
+                    on:click={() => sort(field === "Order ID" ? "id" : field)}
                   >
                     <div class="flex items-center gap-1">
-                      {field === "created_at"
-                        ? "Ordered At"
-                        : field.charAt(0).toUpperCase() +
-                          field.slice(1).replace("_", " ")}
+                      {formatColumnName(field)}
 
-                      {#if sortField === field}
+                      {#if sortField === (field === "Order ID" ? "id" : field)}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           class="h-4 w-4 {sortDirection === 'asc'
@@ -1893,9 +1896,7 @@
                     </div>
                   </th>
                 {/each}
-                <th class="p-4 text-right font-semibold text-gray-600"
-                  >Actions</th
-                >
+                <th class="p-4 text-right font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1911,8 +1912,10 @@
                   </td>
                   <td class="p-2">{order.id}</td>
                   <td class="p-2">
-                    {order.student?.first_name}
-                    {order.student?.last_name}
+                    <div class="flex flex-col">
+                      <span class="text-xs text-gray-500">ID: {order.student?.id}</span>
+                      <span>{order.student?.first_name} {order.student?.last_name}</span>
+                    </div>
                   </td>
                   <td class="p-2">{order.uniform_type}</td>
                   <td class="p-2"
@@ -1963,18 +1966,15 @@
           {:else if activeTab === "in_progress"}
             <thead>
               <tr class="bg-gray-50">
-                {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
+                {#each ["Order ID", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
                     class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
-                    on:click={() => sort(field)}
+                    on:click={() => sort(field === "Order ID" ? "id" : field)}
                   >
                     <div class="flex items-center gap-1">
-                      {field === "created_at"
-                        ? "Ordered At"
-                        : field.charAt(0).toUpperCase() +
-                          field.slice(1).replace("_", " ")}
+                      {formatColumnName(field)}
 
-                      {#if sortField === field}
+                      {#if sortField === (field === "Order ID" ? "id" : field)}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           class="h-4 w-4 {sortDirection === 'asc'
@@ -1995,12 +1995,8 @@
                     </div>
                   </th>
                 {/each}
-                <th class="p-4 text-left font-semibold text-gray-600"
-                  >Assigned To</th
-                >
-                <th class="p-4 text-left font-semibold text-gray-600"
-                  >Assigned By</th
-                >
+                <th class="p-4 text-left font-semibold text-gray-600">Assigned To</th>
+                <th class="p-4 text-left font-semibold text-gray-600">Assigned By</th>
               </tr>
             </thead>
             <tbody>
@@ -2008,8 +2004,10 @@
                 <tr class="border-b hover:bg-muted">
                   <td class="p-2">{order.id}</td>
                   <td class="p-2">
-                    {order.student?.first_name}
-                    {order.student?.last_name}
+                    <div class="flex flex-col">
+                      <span class="text-xs text-gray-500">ID: {order.student?.id}</span>
+                      <span>{order.student?.first_name} {order.student?.last_name}</span>
+                    </div>
                   </td>
                   <td class="p-2">{order.uniform_type}</td>
                   <td class="p-2"
@@ -2052,18 +2050,15 @@
           {:else if activeTab === "completed"}
             <thead>
               <tr class="bg-gray-50">
-                {#each ["id", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
+                {#each ["Order ID", "student", "uniform_type", "created_at", "due_date", "total_amount", "status"] as field}
                   <th
                     class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
-                    on:click={() => sort(field)}
+                    on:click={() => sort(field === "Order ID" ? "id" : field)}
                   >
                     <div class="flex items-center gap-1">
-                      {field === "created_at"
-                        ? "Ordered At"
-                        : field.charAt(0).toUpperCase() +
-                          field.slice(1).replace("_", " ")}
+                      {formatColumnName(field)}
 
-                      {#if sortField === field}
+                      {#if sortField === (field === "Order ID" ? "id" : field)}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           class="h-4 w-4 {sortDirection === 'asc'
@@ -2084,12 +2079,8 @@
                     </div>
                   </th>
                 {/each}
-                <th class="p-4 text-left font-semibold text-gray-600"
-                  >Assigned To</th
-                >
-                <th class="p-4 text-left font-semibold text-gray-600"
-                  >Assigned By</th
-                >
+                <th class="p-4 text-left font-semibold text-gray-600">Assigned To</th>
+                <th class="p-4 text-left font-semibold text-gray-600">Assigned By</th>
               </tr>
             </thead>
             <tbody>
@@ -2097,8 +2088,10 @@
                 <tr class="border-b hover:bg-muted">
                   <td class="p-2">{order.id}</td>
                   <td class="p-2">
-                    {order.student?.first_name}
-                    {order.student?.last_name}
+                    <div class="flex flex-col">
+                      <span class="text-xs text-gray-500">ID: {order.student?.id}</span>
+                      <span>{order.student?.first_name} {order.student?.last_name}</span>
+                    </div>
                   </td>
                   <td class="p-2">{order.uniform_type}</td>
                   <td class="p-2"
