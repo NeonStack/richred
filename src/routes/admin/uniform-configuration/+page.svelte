@@ -7,6 +7,7 @@
   let configs = data.configs || [];
   let courses = data.courses || [];
   let measurementTypes = data.measurementTypes || [];
+  let inventoryItems = data.inventoryItems || [];
   let selectedConfig = null;
   let showForm = false;
   let isLoading = false;
@@ -231,9 +232,93 @@
     selectedConfig.measurement_specs?.forEach(spec => {
       measurementSpecs[spec.measurement_type_id] = {
         base_cm: spec.base_cm,
-        additional_cost_per_cm: spec.additional_cost_per_cm
+        additional_cost_per_cm: spec.additional_cost_per_cm,
+        materials: spec.materials || []
       };
     });
+  }
+
+  // Track base materials for uniform
+  let uniformBaseMaterials = new Set();
+  let uniformBaseMaterialQuantities = {};
+
+  // Initialize base materials when editing
+  $: if (selectedConfig && selectedConfig.base_materials) {
+    uniformBaseMaterials = new Set(
+      selectedConfig.base_materials.map(m => m.material_id)
+    );
+    
+    uniformBaseMaterialQuantities = {};
+    selectedConfig.base_materials.forEach(material => {
+      uniformBaseMaterialQuantities[material.material_id] = material.quantity;
+    });
+  }
+
+  // Toggle selection of base material for uniform
+  function toggleUniformBaseMaterial(materialId) {
+    uniformBaseMaterials = new Set(uniformBaseMaterials);
+    
+    if (uniformBaseMaterials.has(materialId)) {
+      uniformBaseMaterials.delete(materialId);
+    } else {
+      uniformBaseMaterials.add(materialId);
+      
+      if (!uniformBaseMaterialQuantities[materialId]) {
+        uniformBaseMaterialQuantities[materialId] = 0;
+      }
+    }
+  }
+
+  // Track selected materials for each measurement type
+  let selectedMaterialsByMeasurement = {};
+
+  // Initialize selected materials when editing
+  $: if (selectedConfig) {
+    selectedMaterialsByMeasurement = {};
+    
+    selectedConfig.measurement_specs?.forEach(spec => {
+      if (spec.materials && spec.materials.length > 0) {
+        selectedMaterialsByMeasurement[spec.measurement_type_id] = new Set(
+          spec.materials.map(m => m.material_id)
+        );
+      } else {
+        selectedMaterialsByMeasurement[spec.measurement_type_id] = new Set();
+      }
+    });
+  }
+
+  // Toggle selection of material for a measurement type
+  function toggleMaterialForMeasurement(measurementTypeId, materialId) {
+    if (!selectedMaterialsByMeasurement[measurementTypeId]) {
+      selectedMaterialsByMeasurement[measurementTypeId] = new Set();
+    }
+    
+    const materials = new Set(selectedMaterialsByMeasurement[measurementTypeId]);
+    
+    if (materials.has(materialId)) {
+      materials.delete(materialId);
+    } else {
+      materials.add(materialId);
+      
+      // Initialize material quantities if not set
+      if (!measurementSpecs[measurementTypeId].materials) {
+        measurementSpecs[measurementTypeId].materials = [];
+      }
+      
+      const existingMaterial = measurementSpecs[measurementTypeId].materials.find(
+        m => m.material_id === materialId
+      );
+      
+      if (!existingMaterial) {
+        measurementSpecs[measurementTypeId].materials.push({
+          material_id: materialId,
+          base_quantity: 0,
+          additional_quantity_per_cm: 0
+        });
+      }
+    }
+    
+    selectedMaterialsByMeasurement[measurementTypeId] = materials;
   }
 
   // Handle measurement selection with default values
@@ -256,10 +341,87 @@
         // Add default values if available, otherwise use 0
         measurementSpecs[typeId] = {
           base_cm: measurementType?.default_base_cm || 0,
-          additional_cost_per_cm: measurementType?.default_additional_cost_per_cm || 0
+          additional_cost_per_cm: measurementType?.default_additional_cost_per_cm || 0,
+          materials: []
         };
       }
+      
+      // Initialize materials set for this measurement
+      if (!selectedMaterialsByMeasurement[typeId]) {
+        selectedMaterialsByMeasurement[typeId] = new Set();
+      }
     }
+  }
+
+  // Get material name by ID
+  function getMaterialName(materialId) {
+    const material = inventoryItems.find(item => item.id === materialId);
+    return material ? material.name : 'Unknown Material';
+  }
+
+  // Get material unit by ID
+  function getMaterialUnit(materialId) {
+    const material = inventoryItems.find(item => item.id === materialId);
+    return material ? material.unit_of_measurement : '';
+  }
+
+  // Update material quantities
+  function updateMaterialQuantity(measurementTypeId, materialId, field, value) {
+    if (!measurementSpecs[measurementTypeId].materials) {
+      measurementSpecs[measurementTypeId].materials = [];
+    }
+    
+    const materialIndex = measurementSpecs[measurementTypeId].materials.findIndex(
+      m => m.material_id === materialId
+    );
+    
+    if (materialIndex >= 0) {
+      measurementSpecs[measurementTypeId].materials[materialIndex][field] = parseFloat(value) || 0;
+    } else {
+      const newMaterial = {
+        material_id: materialId,
+        base_quantity: 0,
+        additional_quantity_per_cm: 0
+      };
+      newMaterial[field] = parseFloat(value) || 0;
+      measurementSpecs[measurementTypeId].materials.push(newMaterial);
+    }
+  }
+  
+  // Convert material arrays to format needed for form submission
+  function getMaterialsForMeasurement(measurementTypeId) {
+    if (!measurementSpecs[measurementTypeId] || !measurementSpecs[measurementTypeId].materials) {
+      return [];
+    }
+    return measurementSpecs[measurementTypeId].materials;
+  }
+
+  // For material usage example calculation
+  let selectedExampleMeasurement = null;
+  let exampleStudentSize = 25;
+
+  // Initialize example with the first measurement that has materials
+  $: if (selectedMeasurements.size > 0 && !selectedExampleMeasurement) {
+    for (const typeId of selectedMeasurements) {
+      if (selectedMaterialsByMeasurement[typeId]?.size > 0) {
+        selectedExampleMeasurement = typeId;
+        break;
+      }
+    }
+  }
+
+  // Calculate the difference between student size and base size
+  $: exampleDifference = selectedExampleMeasurement 
+    ? exampleStudentSize - (measurementSpecs[selectedExampleMeasurement]?.base_cm || 0)
+    : 0;
+
+  // Calculate total material needed based on the example
+  function exampleMaterialTotal(materialSpec) {
+    const baseQty = parseFloat(materialSpec.base_quantity) || 0;
+    const additionalQty = parseFloat(materialSpec.additional_quantity_per_cm) || 0;
+    const extraCm = Math.max(0, exampleDifference);
+    
+    return (baseQty + (additionalQty * extraCm)).toFixed(2);
   }
 </script>
 
@@ -593,7 +755,7 @@
       class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-4"
     >
       <div
-        class="bg-gradient-to-br from-white via-gray-50 to-muted rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(183,50,51,0.15)] border border-white/50 overflow-hidden animate-scale"
+        class="bg-gradient-to-br from-white via-gray-50 to-muted rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(183,50,51,0.15)] border border-white/50 overflow-hidden animate-scale"
       >
         <!-- Modal Header -->
         <div
@@ -603,7 +765,7 @@
             {selectedConfig ? "Edit Configuration" : "New Configuration"}
           </h2>
           <p class="text-sm md:text-base text-muted mt-2">
-            Configure uniform specifications and measurements
+            Configure uniform specifications, measurements, and materials
           </p>
         </div>
 
@@ -772,28 +934,78 @@
                         required
                       />
                     </div>
+                    <!-- Base Materials for Entire Uniform -->
+                    <div class="mt-6">
+                      <h4 class="text-sm font-medium text-primary/70 mb-3">
+                        Base Materials for Uniform
+                      </h4>
+                      
+                      <div class="space-y-2">
+                        {#each inventoryItems as material}
+                          <div class="flex items-center justify-between bg-white/90 p-2 rounded-lg border border-gray-100 hover:border-primary/20">
+                            <div class="flex items-center">
+                              <input
+                                type="checkbox"
+                                name="uniformBaseMaterials"
+                                value={material.id}
+                                checked={uniformBaseMaterials.has(material.id)}
+                                on:change={() => toggleUniformBaseMaterial(material.id)}
+                                class="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span class="ml-2 text-sm">{material.name}</span>
+                            </div>
+                            
+                            {#if uniformBaseMaterials.has(material.id)}
+                              <div class="flex items-center" on:click|stopPropagation>
+                                <input
+                                  type="number"
+                                  name="uniformBaseMaterialQty_{material.id}"
+                                  value={uniformBaseMaterialQuantities[material.id] || 0}
+                                  on:input={(e) => uniformBaseMaterialQuantities[material.id] = parseFloat(e.target.value) || 0}
+                                  class="w-20 text-sm px-2 py-1 border rounded"
+                                  min="0"
+                                  step="0.01"
+                                />
+                                <span class="ml-1 text-xs text-gray-500">
+                                  {material.unit_of_measurement}
+                                </span>
+                              </div>
+                            {/if}
+                          </div>
+                        {/each}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Right Column - Measurements -->
+              <!-- Right Column - Measurements and Materials -->
               <div class="w-full md:w-2/3 p-4 md:p-6 flex-1 overflow-y-auto">
                 <div
                   class="bg-white/80 p-4 md:p-6 rounded-xl border border-primary/10 shadow-sm space-y-4 md:space-y-6"
                 >
                   <h3 class="text-base md:text-lg font-semibold text-primary">
-                    Measurement Specifications
+                    Measurement Specifications and Materials
                   </h3>
                   
                   <!-- Pricing Formula Visualization -->
                   <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                    <p class="text-xs text-blue-800 font-medium mb-2">How pricing works:</p>
-                    <div class="flex items-center flex-wrap gap-1 text-xs">
-                      <span class="px-2 py-1 bg-primary text-white rounded">Base Price</span>
-                      <span>+</span>
-                      <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded whitespace-nowrap">(Student's cm - Base cm) × Cost per extra cm</span>
-                      <span>=</span>
-                      <span class="px-2 py-1 bg-green-100 text-green-800 rounded">Final Price</span>
+                    <p class="text-xs text-blue-800 font-medium mb-2">How pricing and materials work:</p>
+                    <div class="flex flex-col gap-1 text-xs">
+                      <div class="flex items-center flex-wrap gap-1">
+                        <span class="px-2 py-1 bg-primary text-white rounded">Base Price</span>
+                        <span>+</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded whitespace-nowrap">(Student's cm - Base cm) × Cost per extra cm</span>
+                        <span>=</span>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded">Final Price</span>
+                      </div>
+                      <div class="flex items-center flex-wrap gap-1 mt-1">
+                        <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded">Base Materials</span>
+                        <span>+</span>
+                        <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded whitespace-nowrap">(Student's cm - Base cm) × Additional material per cm</span>
+                        <span>=</span>
+                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded">Total Materials Used</span>
+                      </div>
                     </div>
                   </div>
 
@@ -805,26 +1017,21 @@
                       >
                         Selected Measurements
                       </h4>
-                      <div
-                        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
-                      >
+                      <div class="space-y-6">
                         {#each measurementTypes as measurementType}
                           {#if selectedMeasurements.has(measurementType.id)}
                             {@const spec = measurementSpecs[measurementType.id] || {
                               base_cm: measurementType.default_base_cm || 0,
-                              additional_cost_per_cm: measurementType.default_additional_cost_per_cm || 0
+                              additional_cost_per_cm: measurementType.default_additional_cost_per_cm || 0,
+                              materials: []
                             }}
-                            <div
-                              class="group"
-                              on:click|preventDefault={() =>
-                                toggleMeasurement(measurementType.id)}
-                            >
+                            <div class="border border-primary/10 rounded-lg overflow-hidden">
+                              <!-- Measurement Header -->
                               <div
-                                class="bg-primary/5 p-3 rounded-lg border border-primary/20 shadow-sm cursor-pointer group-hover:border-primary/50 group-hover:shadow-md transition-all duration-200"
+                                class="group bg-primary/5 p-3 rounded-t-lg border-b border-primary/20 cursor-pointer"
+                                on:click|preventDefault={() => toggleMeasurement(measurementType.id)}
                               >
-                                <div
-                                  class="flex items-center justify-between p-2"
-                                >
+                                <div class="flex items-center justify-between p-2">
                                   <span class="font-medium text-primary"
                                     >{measurementType.name}</span
                                   >
@@ -836,14 +1043,14 @@
                                     class="w-4 h-4 rounded-md border-gray-300 text-primary focus:ring-primary pointer-events-none"
                                   />
                                 </div>
-                                <!-- Stop propagation for input fields to allow interaction -->
-                                <div
-                                  class="space-y-2 mt-2"
-                                  on:click|stopPropagation
-                                >
+                              </div>
+                              
+                              <!-- Measurement Content -->
+                              <div class="p-4 bg-white/60">
+                                <!-- Measurement Specs (existing) -->
+                                <div class="grid grid-cols-2 gap-4 mb-4">
                                   <div>
-                                    <label class="block text-xs text-gray-600"
-                                      >Base (cm)</label>
+                                    <label class="block text-xs text-gray-600">Base (cm)</label>
                                     <input
                                       type="number"
                                       name="baseCm_{measurementType.id}"
@@ -862,8 +1069,7 @@
                                     />
                                   </div>
                                   <div>
-                                    <label class="block text-xs text-gray-600"
-                                      >Cost per extra cm (₱)</label>
+                                    <label class="block text-xs text-gray-600">Cost per extra cm (₱)</label>
                                     <input
                                       type="number"
                                       name="costPerCm_{measurementType.id}"
@@ -880,6 +1086,110 @@
                                       }}
                                     />
                                   </div>
+                                </div>
+                                
+                                <!-- Materials for this measurement -->
+                                <div class="mt-4">
+                                  <h5 class="text-xs font-medium text-gray-700 mb-2 flex items-center">
+                                    Materials Required for {measurementType.name}
+                                    <span class="ml-2 group relative cursor-help">
+                                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded">
+                                        Material needed for this measurement. "Standard Amount" is used for the standard size, and "Extra per cm" is added for each cm beyond standard.
+                                      </div>
+                                    </span>
+                                  </h5>
+                                  
+                                  <!-- Selected materials for this measurement -->
+                                  {#if selectedMaterialsByMeasurement[measurementType.id]?.size > 0}
+                                    <div class="mb-4 space-y-2">
+                                      {#each Array.from(selectedMaterialsByMeasurement[measurementType.id] || []) as materialId}
+                                        {@const material = inventoryItems.find(m => m.id === materialId)}
+                                        {@const materialSpec = getMaterialsForMeasurement(measurementType.id).find(m => m.material_id === materialId) || { base_quantity: 0, additional_quantity_per_cm: 0 }}
+                                        {#if material}
+                                          <div class="flex flex-col sm:flex-row sm:items-center bg-blue-50 p-2 rounded-lg border border-blue-100">
+                                            <div class="flex-1 flex items-center mb-2 sm:mb-0">
+                                              <button
+                                                type="button"
+                                                class="text-red-500 hover:text-red-700 mr-2"
+                                                on:click={() => toggleMaterialForMeasurement(measurementType.id, materialId)}
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                              </button>
+                                              <span class="text-sm font-medium">{material.name}</span>
+                                            </div>
+                                            
+                                            <div class="flex items-center gap-2">
+                                              <div class="flex items-center">
+                                                <label class="text-xs text-gray-600 mr-1">Standard Amount:</label>
+                                                <input
+                                                  type="number"
+                                                  name="baseMaterialQty_{measurementType.id}_{materialId}"
+                                                  value={materialSpec.base_quantity}
+                                                  min="0"
+                                                  step="0.01"
+                                                  class="w-16 text-xs px-1 py-1 border rounded"
+                                                  on:input={(e) => updateMaterialQuantity(
+                                                    measurementType.id,
+                                                    materialId,
+                                                    'base_quantity',
+                                                    e.target.value
+                                                  )}
+                                                />
+                                                <span class="ml-1 text-xs">{material.unit_of_measurement}</span>
+                                              </div>
+                                              
+                                              <div class="flex items-center">
+                                                <label class="text-xs text-gray-600 mr-1">Extra per cm:</label>
+                                                <input
+                                                  type="number"
+                                                  name="additionalMaterialQty_{measurementType.id}_{materialId}"
+                                                  value={materialSpec.additional_quantity_per_cm}
+                                                  min="0"
+                                                  step="0.01"
+                                                  class="w-16 text-xs px-1 py-1 border rounded"
+                                                  on:input={(e) => updateMaterialQuantity(
+                                                    measurementType.id,
+                                                    materialId,
+                                                    'additional_quantity_per_cm',
+                                                    e.target.value
+                                                  )}
+                                                />
+                                                <span class="ml-1 text-xs">{material.unit_of_measurement}/cm</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        {/if}
+                                      {/each}
+                                    </div>
+                                  {/if}
+                                  
+                                  <!-- Add material dropdown -->
+                                  <div class="mt-2">
+                                    <select 
+                                      class="text-sm px-2 py-1 border rounded w-full"
+                                      on:change={(e) => {
+                                        if (e.target.value) {
+                                          toggleMaterialForMeasurement(measurementType.id, parseInt(e.target.value));
+                                          e.target.value = "";
+                                        }
+                                      }}
+                                    >
+                                      <option value="">+ Add material for this measurement</option>
+                                      {#each inventoryItems.filter(m => !selectedMaterialsByMeasurement[measurementType.id]?.has(m.id)) as material}
+                                        <option value={material.id}>{material.name} ({material.unit_of_measurement})</option>
+                                      {/each}
+                                    </select>
+                                  </div>
+                                  
+                                  <!-- Hidden inputs to ensure materials are submitted with form -->
+                                  {#each Array.from(selectedMaterialsByMeasurement[measurementType.id] || []) as materialId}
+                                    <input type="hidden" name="baseMaterials_{measurementType.id}" value={materialId} />
+                                  {/each}
                                 </div>
                               </div>
                             </div>
@@ -928,6 +1238,100 @@
                           </div>
                         {/if}
                       {/each}
+                    </div>
+                  </div>
+
+                  <!-- Add a Material Usage Explainer Section at the bottom -->
+                  <div class="mt-8 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                    <h4 class="text-base font-semibold text-blue-800 mb-3">
+                      How Material Calculation Works
+                    </h4>
+                    
+                    <div class="space-y-4">
+                      <!-- General explanation -->
+                      <div>
+                        <p class="text-sm text-blue-700 mb-2">
+                          This system calculates material usage in two parts:
+                        </p>
+                        <ul class="list-disc pl-5 text-sm text-blue-600 space-y-1">
+                          <li><span class="font-medium">Base Materials for Uniform</span>: Fixed materials needed for the entire uniform (buttons, zippers, etc.)</li>
+                          <li><span class="font-medium">Measurement-specific Materials</span>: Materials needed for each body measurement</li>
+                        </ul>
+                      </div>
+                      
+                      <!-- Visual example with real calculations -->
+                      <div class="bg-white/80 rounded-lg p-3 border border-blue-200">
+                        <h5 class="text-sm font-medium text-blue-800 mb-2">Example Calculation:</h5>
+                        
+                        <!-- Select a measurement type and material for the example -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                          <div>
+                            <label class="block text-xs font-medium text-blue-700 mb-1">Measurement</label>
+                            <select class="text-sm w-full p-1 border rounded bg-white" bind:value={selectedExampleMeasurement}>
+                              {#each Array.from(selectedMeasurements) as typeId}
+                                {@const measurementType = measurementTypes.find(m => m.id === typeId)}
+                                <option value={typeId}>{measurementType?.name || 'Unknown'}</option>
+                              {/each}
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-medium text-blue-700 mb-1">Student Size (cm)</label>
+                            <input 
+                              type="number" 
+                              bind:value={exampleStudentSize} 
+                              min="0" 
+                              step="1"
+                              class="text-sm w-full p-1 border rounded bg-white"
+                            />
+                          </div>
+                        </div>
+                        
+                        <!-- Show the calculation for the selected example -->
+                        {#if selectedExampleMeasurement && selectedMaterialsByMeasurement[selectedExampleMeasurement]?.size > 0}
+                          {@const measurementType = measurementTypes.find(m => m.id === selectedExampleMeasurement)}
+                          {@const spec = measurementSpecs[selectedExampleMeasurement] || { base_cm: 0, additional_cost_per_cm: 0 }}
+                          <div class="space-y-3">
+                            <div class="bg-gray-50 p-2 rounded text-xs">
+                              <p class="font-medium text-blue-800">For '{measurementType?.name}' with standard size {spec.base_cm} cm:</p>
+                              <p>If a student measures {exampleStudentSize} cm ({exampleDifference} cm difference):</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                              {#each Array.from(selectedMaterialsByMeasurement[selectedExampleMeasurement] || []) as materialId}
+                                {@const material = inventoryItems.find(m => m.id === materialId)}
+                                {@const materialSpec = getMaterialsForMeasurement(selectedExampleMeasurement).find(m => m.material_id === materialId) || { base_quantity: 0, additional_quantity_per_cm: 0 }}
+                                {#if material}
+                                  <div class="bg-green-50 p-2 rounded border border-green-100">
+                                    <p class="font-medium text-green-800 text-xs">{material.name}:</p>
+                                    <div class="flex flex-wrap items-center text-xs mt-1 text-green-700">
+                                      <span class="px-1 py-0.5 bg-blue-100 rounded">{materialSpec.base_quantity} {material.unit_of_measurement}</span>
+                                      <span class="mx-1">+</span>
+                                      <span class="px-1 py-0.5 bg-yellow-100 rounded">{materialSpec.additional_quantity_per_cm} × {Math.max(0, exampleDifference)} cm</span>
+                                      <span class="mx-1">=</span>
+                                      <span class="px-1 py-0.5 bg-green-100 rounded font-medium">{exampleMaterialTotal(materialSpec)} {material.unit_of_measurement}</span>
+                                    </div>
+                                  </div>
+                                {/if}
+                              {/each}
+                            </div>
+                            
+                            <div class="bg-indigo-50 p-2 rounded border border-indigo-100 text-xs">
+                              <p class="font-medium text-indigo-800">Pricing:</p>
+                              <div class="flex flex-wrap items-center mt-1 text-indigo-700">
+                                <span class="px-1 py-0.5 bg-blue-100 rounded">Base price: ₱{spec.base_price || 0}</span>
+                                <span class="mx-1">+</span>
+                                <span class="px-1 py-0.5 bg-yellow-100 rounded">Extra: ₱{spec.additional_cost_per_cm} × {Math.max(0, exampleDifference)} cm</span>
+                                <span class="mx-1">=</span>
+                                <span class="px-1 py-0.5 bg-green-100 rounded font-medium">
+                                  ₱{(parseFloat(spec.base_price || 0) + (Math.max(0, exampleDifference) * parseFloat(spec.additional_cost_per_cm || 0))).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        {:else}
+                          <p class="text-xs text-gray-500 italic">Select a measurement with materials to see an example calculation.</p>
+                        {/if}
+                      </div>
                     </div>
                   </div>
                 </div>

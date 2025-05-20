@@ -13,6 +13,7 @@ export const load = async ({ locals }) => {
                 wear_type,
                 base_price,
                 measurement_specs,
+                base_materials,
                 created_at,
                 courses:course_id(id, course_code)
             `)
@@ -51,6 +52,14 @@ export const load = async ({ locals }) => {
             .order('name');
 
         if (measurementError) throw measurementError;
+        
+        // Fetch all inventory items for material selection
+        const { data: inventoryItems, error: inventoryError } = await supabase
+            .from('inventory_items')
+            .select('*')
+            .order('name');
+            
+        if (inventoryError) throw inventoryError;
 
         // Prepare a mapping of existing configurations
         const configurationMap = {};
@@ -73,6 +82,7 @@ export const load = async ({ locals }) => {
             configs: configsWithCount,
             courses,
             measurementTypes,
+            inventoryItems,
             configurationMap // Add this to be used in the Svelte component
         };
     } catch (err) {
@@ -92,12 +102,47 @@ export const actions = {
             
             // Get selected measurement types and their specifications
             const selectedMeasurements = formData.getAll('selectedMeasurements');
-            const measurement_specs = selectedMeasurements.map(typeId => ({
-                measurement_type_id: parseInt(typeId),
-                base_cm: parseFloat(formData.get(`baseCm_${typeId}`) || '0'),
-                additional_cost_per_cm: parseFloat(formData.get(`costPerCm_${typeId}`) || '0')
-            }));
+            const measurement_specs = selectedMeasurements.map(typeId => {
+                // Get base measurements and costs
+                const spec = {
+                    measurement_type_id: parseInt(typeId),
+                    base_cm: parseFloat(formData.get(`baseCm_${typeId}`) || '0'),
+                    additional_cost_per_cm: parseFloat(formData.get(`costPerCm_${typeId}`) || '0')
+                };
+                
+                // Get materials for this measurement type
+                const baseMaterialIds = formData.getAll(`baseMaterials_${typeId}`);
+                const materialSpecs = [];
+                
+                baseMaterialIds.forEach(materialId => {
+                    const quantity = parseFloat(formData.get(`baseMaterialQty_${typeId}_${materialId}`) || '0');
+                    const additionalQty = parseFloat(formData.get(`additionalMaterialQty_${typeId}_${materialId}`) || '0');
+                    
+                    if (quantity > 0 || additionalQty > 0) {
+                        materialSpecs.push({
+                            material_id: parseInt(materialId),
+                            base_quantity: quantity,
+                            additional_quantity_per_cm: additionalQty
+                        });
+                    }
+                });
+                
+                // Add materials to the spec
+                spec.materials = materialSpecs;
+                
+                return spec;
+            });
 
+            // Get base materials for the entire uniform
+            const baseMaterialIds = formData.getAll('uniformBaseMaterials');
+            const baseMaterials = baseMaterialIds.map(materialId => {
+                const quantity = parseFloat(formData.get(`uniformBaseMaterialQty_${materialId}`) || '0');
+                return {
+                    material_id: parseInt(materialId),
+                    quantity: quantity
+                };
+            }).filter(m => m.quantity > 0);
+            
             if (!gender || !courseId || !wearType || !basePrice || measurement_specs.length === 0) {
                 throw error(400, 'Missing required fields');
             }
@@ -109,6 +154,7 @@ export const actions = {
                     course_id: courseId,
                     wear_type: wearType,
                     measurement_specs,
+                    base_materials: baseMaterials,
                     base_price: basePrice
                 })
                 .select()
@@ -131,11 +177,46 @@ export const actions = {
 
             // Get selected measurement types and their specifications
             const selectedMeasurements = formData.getAll('selectedMeasurements');
-            const measurement_specs = selectedMeasurements.map(typeId => ({
-                measurement_type_id: parseInt(typeId),
-                base_cm: parseFloat(formData.get(`baseCm_${typeId}`) || '0'),
-                additional_cost_per_cm: parseFloat(formData.get(`costPerCm_${typeId}`) || '0')
-            }));
+            const measurement_specs = selectedMeasurements.map(typeId => {
+                // Get base measurements and costs
+                const spec = {
+                    measurement_type_id: parseInt(typeId),
+                    base_cm: parseFloat(formData.get(`baseCm_${typeId}`) || '0'),
+                    additional_cost_per_cm: parseFloat(formData.get(`costPerCm_${typeId}`) || '0')
+                };
+                
+                // Get materials for this measurement type
+                const baseMaterialIds = formData.getAll(`baseMaterials_${typeId}`);
+                const materialSpecs = [];
+                
+                baseMaterialIds.forEach(materialId => {
+                    const quantity = parseFloat(formData.get(`baseMaterialQty_${typeId}_${materialId}`) || '0');
+                    const additionalQty = parseFloat(formData.get(`additionalMaterialQty_${typeId}_${materialId}`) || '0');
+                    
+                    if (quantity > 0 || additionalQty > 0) {
+                        materialSpecs.push({
+                            material_id: parseInt(materialId),
+                            base_quantity: quantity,
+                            additional_quantity_per_cm: additionalQty
+                        });
+                    }
+                });
+                
+                // Add materials to the spec
+                spec.materials = materialSpecs;
+                
+                return spec;
+            });
+
+            // Get base materials for the entire uniform
+            const baseMaterialIds = formData.getAll('uniformBaseMaterials');
+            const baseMaterials = baseMaterialIds.map(materialId => {
+                const quantity = parseFloat(formData.get(`uniformBaseMaterialQty_${materialId}`) || '0');
+                return {
+                    material_id: parseInt(materialId),
+                    quantity: quantity
+                };
+            }).filter(m => m.quantity > 0);
 
             if (!id || !basePrice || measurement_specs.length === 0) {
                 throw error(400, 'Missing required fields');
@@ -146,6 +227,7 @@ export const actions = {
                 .from('uniform_configuration')
                 .update({
                     measurement_specs,
+                    base_materials: baseMaterials,
                     base_price: basePrice
                 })
                 .eq('id', id)

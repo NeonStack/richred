@@ -99,6 +99,7 @@ CREATE TABLE uniform_configuration (
   wear_type text NOT NULL,
   measurement_specs jsonb NOT NULL DEFAULT '[]'::jsonb,
   base_price numeric(10,2) NOT NULL,
+  base_materials jsonb DEFAULT '[]'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT uniform_configuration_course_id_gender_wear_type_key UNIQUE (course_id, gender, wear_type),
   CONSTRAINT uniform_configuration_course_id_fkey FOREIGN KEY (course_id) REFERENCES courses(id),
