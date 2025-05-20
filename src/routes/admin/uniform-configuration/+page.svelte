@@ -407,6 +407,11 @@
   let showAllMeasurements = true;
   let exampleAddToAll = 5; // Default amount to add to all measurements
 
+  // Make exampleAddToAll reactive - apply changes immediately when value changes
+  $: if (exampleAddToAll !== undefined) {
+    applyAddToAllMeasurements(exampleAddToAll);
+  }
+
   // Initialize example sizes with base values from measurement specs
   $: {
     if (selectedMeasurements.size > 0) {
@@ -415,16 +420,21 @@
         const spec = measurementSpecs[typeId] || {};
         newSizes[typeId] = spec.base_cm || 0;
       });
-      exampleStudentSize = newSizes;
+      // Only initialize if not already set
+      if (Object.keys(exampleStudentSize).length === 0) {
+        exampleStudentSize = newSizes;
+      }
     }
   }
 
   // Apply additional cm to all measurements
-  function applyAddToAll() {
-    const newSizes = {...exampleStudentSize};
+  function applyAddToAllMeasurements(addValue) {
+    if (!selectedMeasurements.size) return;
+    
+    const newSizes = {};
     selectedMeasurements.forEach(typeId => {
       const spec = measurementSpecs[typeId] || {};
-      newSizes[typeId] = (spec.base_cm || 0) + parseFloat(exampleAddToAll || 0);
+      newSizes[typeId] = (spec.base_cm || 0) + parseFloat(addValue || 0);
     });
     exampleStudentSize = newSizes;
   }
@@ -437,6 +447,7 @@
       newSizes[typeId] = spec.base_cm || 0;
     });
     exampleStudentSize = newSizes;
+    exampleAddToAll = 0; // Reset the input value too
   }
 
   // Calculate the difference between student size and base size for a measurement
@@ -1155,13 +1166,13 @@
                                 <!-- Materials for this measurement -->
                                 <div class="mt-4">
                                   <h5 class="text-xs font-medium text-gray-700 mb-2 flex items-center">
-                                    Materials Required for {measurementType.name}
+                                    Materials for {measurementType.name} when exceeding standard size
                                     <span class="ml-2 group relative cursor-help">
                                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                       </svg>
                                       <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded">
-                                        Specify how much material is needed per centimeter of student's measurement. Total material will be calculated by multiplying this value by the student's actual measurement.
+                                        Specify how much material is needed per centimeter of student's measurement beyond the standard size. Total material is calculated by multiplying this value by the student's actual measurement.
                                       </div>
                                     </span>
                                   </h5>
@@ -1310,14 +1321,9 @@
                             />
                             <span class="text-xs">cm</span>
                             <button 
-                              class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
-                              on:click={applyAddToAll}
-                            >
-                              Apply
-                            </button>
-                            <button 
+                              type="button"
                               class="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
-                              on:click={resetExampleSizes}
+                              on:click|preventDefault={resetExampleSizes}
                             >
                               Reset
                             </button>
