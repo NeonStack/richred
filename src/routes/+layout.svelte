@@ -52,6 +52,12 @@
       "Manage academic programs and courses for RichRed Clotheshoppe uniform system. Add, edit and organize student course information.",
       keywords: "RichRed JOMS, courses, programs, academic",
     },
+    "/admin/inventory":{
+      title: "Inventory Management | RichRed Clotheshoppe JOMS",
+      description:
+      "Manage and track inventory levels, materials and supplies for RichRed Clotheshoppe.",
+      keywords: "RichRed JOMS, inventory, management, materials",
+    },
     "/admin/measurement": {
       title: "Measurement Types | RichRed Clotheshoppe JOMS",
       description:

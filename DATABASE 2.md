@@ -1,4 +1,3 @@
-
 -- CHECKKKKKKKKKKKKKKKKKKKKKKKKKKK
 CREATE TABLE admin_permissions (
   id bigint primary key generated always as identity,
@@ -108,3 +107,34 @@ CREATE TABLE uniform_configuration (
 );
 CREATE INDEX IF NOT EXISTS idx_uniform_config_course ON uniform_configuration(course_id);
 CREATE INDEX IF NOT EXISTS idx_uniform_config_wear_type ON uniform_configuration(wear_type);
+
+--INVENTORY TABLES
+CREATE TABLE inventory_items (
+  id bigint primary key generated always as identity,
+  name text NOT NULL,
+  description text NULL,
+  unit_of_measurement text NOT NULL,
+  quantity_available numeric(10,2) NOT NULL DEFAULT 0,
+  minimum_stock_level numeric(10,2) NOT NULL DEFAULT 0,
+  cost_per_unit numeric(10,2) NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT inventory_items_name_key UNIQUE (name)
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_name ON inventory_items(name);
+
+CREATE TABLE inventory_transactions (
+  id bigint primary key generated always as identity,
+  inventory_item_id bigint NOT NULL,
+  transaction_type text NOT NULL,
+  quantity numeric(10,2) NOT NULL,
+  notes text NULL,
+  order_id bigint NULL,
+  transaction_date timestamp with time zone NOT NULL DEFAULT now(),
+  created_by text NULL,
+  CONSTRAINT inventory_transactions_inventory_item_id_fkey FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id),
+  CONSTRAINT inventory_transactions_order_id_fkey FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT inventory_transactions_transaction_type_check CHECK (transaction_type IN ('stock_in', 'stock_out', 'adjustment', 'reservation'))
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_transactions_item_id ON inventory_transactions(inventory_item_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_transactions_order_id ON inventory_transactions(order_id);
