@@ -405,76 +405,71 @@
   // For material usage example calculation
   let exampleStudentSize = {};
   let showAllMeasurements = true;
-  let exampleAddToAll = 5; // Default amount to add to all measurements
-
-  // Make exampleAddToAll reactive - apply changes immediately when value changes
-  $: if (exampleAddToAll !== undefined) {
-    applyAddToAllMeasurements(exampleAddToAll);
-  }
+  let exampleAddToAll = 0; // Default to 0 instead of 5
 
   // Initialize example sizes with base values from measurement specs
   $: {
-    if (selectedMeasurements.size > 0) {
+    if (selectedMeasurements.size > 0 && Object.keys(exampleStudentSize).length === 0) {
       const newSizes = {};
       selectedMeasurements.forEach(typeId => {
         const spec = measurementSpecs[typeId] || {};
         newSizes[typeId] = spec.base_cm || 0;
       });
-      // Only initialize if not already set
-      if (Object.keys(exampleStudentSize).length === 0) {
-        exampleStudentSize = newSizes;
-      }
+      exampleStudentSize = newSizes;
     }
   }
 
-  // Apply additional cm to all measurements
-  function applyAddToAllMeasurements(addValue) {
-    if (!selectedMeasurements.size) return;
-    
-    const newSizes = {};
+  // Make example sizes reactive to base size changes
+  $: {
     selectedMeasurements.forEach(typeId => {
-      const spec = measurementSpecs[typeId] || {};
-      newSizes[typeId] = (spec.base_cm || 0) + parseFloat(addValue || 0);
+      if (measurementSpecs[typeId] && exampleStudentSize[typeId] !== undefined) {
+        // Only update if they match the base + additional pattern
+        const currentDiff = (exampleStudentSize[typeId] || 0) - (measurementSpecs[typeId]?.base_cm || 0);
+        if (Math.abs(currentDiff - exampleAddToAll) < 0.001) {
+          exampleStudentSize[typeId] = (measurementSpecs[typeId]?.base_cm || 0) + exampleAddToAll;
+        }
+      }
     });
-    exampleStudentSize = newSizes;
   }
 
-  // Reset all measurements to base values
+  // Apply additional cm to all measurements reactively when exampleAddToAll changes
+  $: {
+    if (selectedMeasurements.size > 0) {
+      const newSizes = {...exampleStudentSize};
+      selectedMeasurements.forEach(typeId => {
+        const spec = measurementSpecs[typeId] || {};
+        newSizes[typeId] = (spec.base_cm || 0) + parseFloat(exampleAddToAll || 0);
+      });
+      exampleStudentSize = newSizes;
+    }
+  }
+
+  // Reset all measurements to zero
   function resetExampleSizes() {
     const newSizes = {};
     selectedMeasurements.forEach(typeId => {
-      const spec = measurementSpecs[typeId] || {};
-      newSizes[typeId] = spec.base_cm || 0;
+      newSizes[typeId] = 0;
     });
     exampleStudentSize = newSizes;
     exampleAddToAll = 0; // Reset the input value too
   }
-
+  
   // Calculate the difference between student size and base size for a measurement
   function getExampleDifference(typeId) {
     const spec = measurementSpecs[typeId] || {};
     return (exampleStudentSize[typeId] || 0) - (spec.base_cm || 0);
   }
 
-  // Calculate total material needed based on the example - simplified model
-  function exampleMaterialTotal(materialSpec, typeId) {
-    const quantityPerCm = parseFloat(materialSpec.quantity_per_cm) || 0;
-    const studentSize = parseFloat(exampleStudentSize[typeId]) || 0;
-    
-    return (quantityPerCm * studentSize).toFixed(2);
-  }
-
-  // Calculate total price for a measurement
-  function calculateMeasurementPrice(typeId) {
+  // Make all calculation functions reactive to their inputs
+  $: calculateMeasurementPrice = (typeId) => {
     const spec = measurementSpecs[typeId] || {};
     const extraCm = Math.max(0, getExampleDifference(typeId));
     const additionalCost = extraCm * (spec.additional_cost_per_cm || 0);
     
     return additionalCost.toFixed(2);
-  }
+  };
 
-  // Calculate total price for all measurements
-  function calculateTotalPrice() {
+  $: calculateTotalPrice = () => {
     let total = parseFloat(selectedConfig?.base_price || 0);
     
     selectedMeasurements.forEach(typeId => {
@@ -482,22 +477,60 @@
     });
     
     return total.toFixed(2);
-  }
+  };
 
-  // Initialize selected materials when editing
-  $: if (selectedConfig) {
-    selectedMaterialsByMeasurement = {};
+  $: exampleMaterialTotal = (materialSpec, typeId) => {
+    const quantityPerCm = parseFloat(materialSpec.quantity_per_cm) || 0;
+    const studentSize = parseFloat(exampleStudentSize[typeId]) || 0;
     
-    selectedConfig.measurement_specs?.forEach(spec => {
-      if (spec.materials && spec.materials.length > 0) {
-        selectedMaterialsByMeasurement[spec.measurement_type_id] = new Set(
-          spec.materials.map(m => m.material_id)
-        );
-      } else {
-        selectedMaterialsByMeasurement[spec.measurement_type_id] = new Set();
+    return (quantityPerCm * studentSize).toFixed(2);
+  };
+
+  $: getAllMaterialsNeeded = () => {
+    const materialsMap = new Map();
+    
+    // Add base uniform materials
+    uniformBaseMaterials.forEach(materialId => {
+      const quantity = parseFloat(uniformBaseMaterialQuantities[materialId] || 0);
+      if (quantity > 0) {
+        materialsMap.set(materialId, {
+          quantity,
+          material: inventoryItems.find(item => item.id === materialId)
+        });
       }
     });
-  }
+    
+    // Add materials from each measurement
+    selectedMeasurements.forEach(typeId => {
+      const materials = selectedMaterialsByMeasurement[typeId];
+      if (materials && materials.size > 0) {
+        materials.forEach(materialId => {
+          const materialSpec = getMaterialsForMeasurement(typeId).find(m => m.material_id === materialId);
+          if (materialSpec) {
+            const material = inventoryItems.find(item => item.id === materialId);
+            const quantity = parseFloat(exampleMaterialTotal(materialSpec, typeId));
+            
+            if (materialsMap.has(materialId)) {
+              // Add to existing material
+              const existing = materialsMap.get(materialId);
+              materialsMap.set(materialId, {
+                quantity: existing.quantity + quantity,
+                material
+              });
+            } else {
+              // Add new material
+              materialsMap.set(materialId, {
+                quantity,
+                material
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    return Array.from(materialsMap.values());
+  };
 </script>
 
 <div class="p-6">
@@ -1315,6 +1348,9 @@
                             <input 
                               type="number" 
                               bind:value={exampleAddToAll}
+                              on:input={() => {
+                                // The calculation is now directly reactive via the $: block above
+                              }}
                               min="0" 
                               step="1"
                               class="w-16 text-sm p-1 border rounded bg-white"
@@ -1349,18 +1385,13 @@
                                 />
                                 <span class="ml-1 text-xs">cm</span>
                               </div>
-                              <div class="mt-1 text-xs text-gray-500">
-                                Difference: <span class={getExampleDifference(typeId) > 0 ? "text-blue-600 font-medium" : "text-gray-600"}>
-                                  {getExampleDifference(typeId) > 0 ? '+' : ''}{getExampleDifference(typeId)} cm
-                                </span>
-                              </div>
                             </div>
                           {/each}
                         </div>
                         
                         <!-- Results: Materials needed -->
                         <div class="mb-4">
-                          <h6 class="text-sm font-medium text-blue-800 mb-2 border-b border-blue-100 pb-1">Materials Needed:</h6>
+                          <h6 class="text-sm font-medium text-blue-800 mb-2 border-b border-blue-100 pb-1">Materials Breakdown:</h6>
                           
                           <!-- Uniform base materials -->
                           {#if uniformBaseMaterials.size > 0}
@@ -1405,6 +1436,19 @@
                               </div>
                             {/if}
                           {/each}
+
+                          <!-- Total Materials Needed -->
+                          <div class="mt-4 pt-2 border-t border-blue-100">
+                            <h6 class="text-xs font-medium text-green-700 mb-1">Total Materials Needed:</h6>
+                            <div class="space-y-1 pl-2">
+                              {#each getAllMaterialsNeeded() as materialItem}
+                                <div class="text-xs flex justify-between">
+                                  <span>{materialItem.material.name}:</span>
+                                  <span class="font-medium text-green-700">{materialItem.quantity.toFixed(2)} {materialItem.material.unit_of_measurement}</span>
+                                </div>
+                              {/each}
+                            </div>
+                          </div>
                         </div>
                         
                         <!-- Results: Price Calculation -->
