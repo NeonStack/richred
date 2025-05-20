@@ -33,6 +33,7 @@ export const load = async ({ locals }) => {
             course_id,
             base_price,
             measurement_specs,
+            base_materials,
             course:courses(*)
         `);
 
@@ -55,11 +56,19 @@ export const load = async ({ locals }) => {
 
   if (ordersError) throw error(500, "Error fetching orders");
 
+  // Fetch inventory items
+  const { data: inventoryItems, error: inventoryError } = await supabase
+    .from("inventory_items")
+    .select("*");
+
+  if (inventoryError) throw error(500, "Error fetching inventory items");
+
   return {
     students,
     employees,
     uniformConfigs,
     orders,
+    inventoryItems,
   };
 };
 
@@ -106,7 +115,9 @@ export const actions = {
   assignOrders: async ({ request, locals }) => {
     const formData = await request.formData();
     const employeeId = formData.get("employeeId");
-    const orderIds = formData.get("orderIds").split(",");
+    const orderIds = formData.get("orderIds").split(",").map(id => parseInt(id));
+    const materialsData = formData.get("materialsData");
+    
     const formatName = (firstName, lastName) => {
       const firstNameParts = firstName.split(" ");
       const initials = firstNameParts.map((part) => part.charAt(0)).join(".");
@@ -131,26 +142,102 @@ export const actions = {
       userProfile.last_name
     );
 
-    const { error: updateError } = await supabase
-      .from("orders")
-      .update({
-        employee_id: employeeId,
-        status: "in progress",
-        assigned_by: formattedName,
-        updated_at: new Date().toISOString(),
-      })
-      .in("id", orderIds);
+    // If materialsData is provided, this is a confirmed assignment
+    if (materialsData) {
+      try {
+        const materials = JSON.parse(materialsData);
+        
+        // 1. Update orders status
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update({
+            employee_id: employeeId,
+            status: "in progress",
+            assigned_by: formattedName,
+            updated_at: new Date().toISOString(),
+          })
+          .in("id", orderIds);
 
-    if (updateError) {
-      return fail(500, {
-        error: "Failed to assign orders",
-      });
+        if (updateError) {
+          console.error("Error updating orders:", updateError);
+          return fail(500, {
+            error: "Failed to assign orders",
+          });
+        }
+
+        // 2. Update inventory items and create transaction records
+        for (const material of materials) {
+          // First, get current quantity
+          const { data: inventoryItem, error: getError } = await supabase
+            .from("inventory_items")
+            .select("quantity_available")
+            .eq("id", material.materialId)
+            .single();
+          
+          if (getError) {
+            console.error("Error fetching inventory item:", getError);
+            return fail(500, {
+              error: `Failed to get inventory for material ${material.materialId}`,
+            });
+          }
+
+          // Update inventory quantity
+          const newQuantity = parseFloat(inventoryItem.quantity_available) - parseFloat(material.quantity);
+          
+          const { error: inventoryError } = await supabase
+            .from("inventory_items")
+            .update({
+              quantity_available: newQuantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", material.materialId);
+
+          if (inventoryError) {
+            console.error("Error updating inventory:", inventoryError);
+            return fail(500, {
+              error: `Failed to update inventory for material ${material.materialId}`,
+            });
+          }
+
+          // Create a transaction record for each order
+          const perOrderQuantity = parseFloat(material.quantity) / orderIds.length;
+          
+          for (const orderId of orderIds) {
+            const { error: transactionError } = await supabase
+              .from("inventory_transactions")
+              .insert({
+                inventory_item_id: material.materialId,
+                transaction_type: "stock_out",
+                quantity: perOrderQuantity,
+                notes: `Deducted for order #${orderId} assignment`,
+                order_id: orderId,
+                created_by: formattedName,
+              });
+
+            if (transactionError) {
+              console.error("Error creating transaction:", transactionError, {
+                inventory_item_id: material.materialId,
+                quantity: perOrderQuantity,
+                order_id: orderId
+              });
+              return fail(500, {
+                error: `Failed to create transaction record for order ${orderId}`,
+              });
+            }
+          }
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error("Error in assignment process:", error);
+        return fail(500, {
+          error: "An unexpected error occurred during assignment"
+        });
+      }
     }
 
     return { success: true };
   },
-
-  // Remove the filterOrders action as it's no longer needed
 
   deleteOrder: async ({ request }) => {
     const formData = await request.formData();

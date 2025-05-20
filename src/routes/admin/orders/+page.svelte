@@ -4,6 +4,7 @@
   import { invalidate } from "$app/navigation";
   import { browser } from "$app/environment";
   import QRCode from "qrcode";
+  import MaterialsConfirmationModal from './MaterialsConfirmationModal.svelte';
 
   export let data;
   let showModal = false;
@@ -30,6 +31,8 @@
   let employeeSearchTerm = "";
   let isLoading = false;
   let orderForReceipt = null;
+  let showMaterialsConfirmation = false;
+  let materialsToDeduct = [];
 
   // Add pagination state
   let rowsPerPage = 10;
@@ -402,15 +405,49 @@
     };
   };
 
-  // Update the enhance function in the assign orders form
+  // Update the handleAssignOrders function
   const handleAssignOrders = () => {
+    if (selectedOrders.length === 0 || !selectedEmployee) return;
+    
+    showMaterialsConfirmation = true;
     return async ({ result }) => {
       if (result.type === "success") {
-        handleAssignmentSuccess();
-        reloadWithTab("in_progress");
+        // Keep modal open - actual assignment happens in handleConfirmAssignment
       }
     };
   };
+
+  // Add this function to handle material confirmation
+  async function handleConfirmAssignment(materials) {
+    isLoading = true;
+    
+    try {
+      const formData = new FormData();
+      formData.append('employeeId', selectedEmployee.id);
+      formData.append('orderIds', selectedOrders.join(','));
+      formData.append('materialsData', JSON.stringify(materials.materialsToDeduct));
+      
+      const response = await fetch('?/assignOrders', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (result.type === "success") {
+        showMaterialsConfirmation = false;
+        handleAssignmentSuccess();
+        reloadWithTab("in_progress");
+      } else {
+        alert(result.error || "Failed to assign orders");
+      }
+    } catch (error) {
+      console.error("Error during assignment:", error);
+      alert("An unexpected error occurred");
+    } finally {
+      isLoading = false;
+    }
+  }
 
   // Update the enhance function in the filter orders form
   const handleFilterOrders = () => {
@@ -1505,6 +1542,19 @@
   </div>
 {/if}
 
+<!-- Add the Materials Confirmation Modal -->
+{#if showMaterialsConfirmation}
+  <MaterialsConfirmationModal
+    selectedOrders={selectedOrders}
+    orders={data.orders}
+    uniformConfigs={data.uniformConfigs}
+    inventoryItems={data.inventoryItems}
+    isLoading={isLoading}
+    on:confirm={e => handleConfirmAssignment(e.detail)}
+    on:cancel={() => showMaterialsConfirmation = false}
+  />
+{/if}
+
 <!-- Main content -->
 <div class="p-6">
   <div
@@ -1616,12 +1666,7 @@
         </div>
 
         {#if selectedOrders.length > 0}
-          <form
-            method="POST"
-            action="?/assignOrders"
-            use:enhance={handleAssignOrders}
-            class="flex gap-4 items-center max-md:flex-col"
-          >
+          <div class="flex gap-4 items-center max-md:flex-col">
             <div class="relative min-w-[250px]">
               <input
                 type="text"
@@ -1681,23 +1726,14 @@
                 </div>
               {/if}
             </div>
-            <input
-              type="hidden"
-              name="employeeId"
-              value={selectedEmployee?.id}
-              required
-            />
-            <input
-              type="hidden"
-              name="orderIds"
-              value={selectedOrders.join(",")}
-            />
+            
             <button
-              type="submit"
-              class="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover transition-colors flex items-center gap-2 {isLoading
+              type="button"
+              class="bg-accent text-white px-4 py-2 rounded hover:bg-accent-hover transition-colors flex items-center gap-2 {isLoading || !selectedEmployee
                 ? 'opacity-50 cursor-not-allowed'
                 : ''}"
               disabled={!selectedEmployee || isLoading}
+              on:click={handleAssignOrders}
             >
               {#if isLoading}
                 <div
@@ -1706,7 +1742,7 @@
               {/if}
               Assign Orders
             </button>
-          </form>
+          </div>
         {/if}
       </div>
     {/if}
