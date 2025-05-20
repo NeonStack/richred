@@ -115,14 +115,12 @@ export const actions = {
                 const materialSpecs = [];
                 
                 baseMaterialIds.forEach(materialId => {
-                    const quantity = parseFloat(formData.get(`baseMaterialQty_${typeId}_${materialId}`) || '0');
-                    const additionalQty = parseFloat(formData.get(`additionalMaterialQty_${typeId}_${materialId}`) || '0');
+                    const quantityPerCm = parseFloat(formData.get(`materialPerCm_${typeId}_${materialId}`) || '0');
                     
-                    if (quantity > 0 || additionalQty > 0) {
+                    if (quantityPerCm > 0) {
                         materialSpecs.push({
                             material_id: parseInt(materialId),
-                            base_quantity: quantity,
-                            additional_quantity_per_cm: additionalQty
+                            quantity_per_cm: quantityPerCm
                         });
                     }
                 });
@@ -190,14 +188,12 @@ export const actions = {
                 const materialSpecs = [];
                 
                 baseMaterialIds.forEach(materialId => {
-                    const quantity = parseFloat(formData.get(`baseMaterialQty_${typeId}_${materialId}`) || '0');
-                    const additionalQty = parseFloat(formData.get(`additionalMaterialQty_${typeId}_${materialId}`) || '0');
+                    const quantityPerCm = parseFloat(formData.get(`materialPerCm_${typeId}_${materialId}`) || '0');
                     
-                    if (quantity > 0 || additionalQty > 0) {
+                    if (quantityPerCm > 0) {
                         materialSpecs.push({
                             material_id: parseInt(materialId),
-                            base_quantity: quantity,
-                            additional_quantity_per_cm: additionalQty
+                            quantity_per_cm: quantityPerCm
                         });
                     }
                 });
