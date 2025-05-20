@@ -1,4 +1,3 @@
--- CHECKKKKKKKKKKKKKKKKKKKKKKKKKKK
 CREATE TABLE admin_permissions (
   id bigint primary key generated always as identity,
   admin_id uuid NULL,
@@ -10,7 +9,6 @@ CREATE TABLE admin_permissions (
 );
 CREATE INDEX IF NOT EXISTS idx_admin_permissions_admin_id ON admin_permissions(admin_id);
 
---CHECK
 CREATE TABLE courses (
   id bigint primary key generated always as identity,
   course_code text NOT NULL,
@@ -20,7 +18,6 @@ CREATE TABLE courses (
 );
 CREATE INDEX IF NOT EXISTS idx_courses_course_code ON courses(course_code);
 
---CHECK
 CREATE TABLE measurement_types (
   id bigint primary key generated always as identity,
   name text NOT NULL,
@@ -31,7 +28,6 @@ CREATE TABLE measurement_types (
 );
 CREATE INDEX IF NOT EXISTS idx_measurement_types_name ON measurement_types(name);
 
---CHECK
 CREATE TABLE orders (
   id bigint primary key generated always as identity,
   student_id integer NULL,
@@ -60,7 +56,6 @@ CREATE TABLE orders (
 );
 CREATE INDEX IF NOT EXISTS idx_orders_receipt_hash ON orders(receipt_hash);
 
--- CHECKKKKKKKKKKKKKKKKKKKKKK
 CREATE TABLE profiles (
   id uuid NOT NULL,
   first_name text NOT NULL,
@@ -75,7 +70,6 @@ CREATE TABLE profiles (
 );
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 
---CHECK
 CREATE TABLE students (
   id bigint primary key generated always as identity,
   first_name text NOT NULL,
@@ -91,7 +85,6 @@ CREATE TABLE students (
 );
 CREATE INDEX IF NOT EXISTS idx_students_course_id ON students(course_id);
 
---CHECK
 CREATE TABLE uniform_configuration (
   id bigint primary key generated always as identity,
   gender text NOT NULL,
@@ -108,6 +101,62 @@ CREATE TABLE uniform_configuration (
 );
 CREATE INDEX IF NOT EXISTS idx_uniform_config_course ON uniform_configuration(course_id);
 CREATE INDEX IF NOT EXISTS idx_uniform_config_wear_type ON uniform_configuration(wear_type);
+--UNIFORM CONFIGURATION SAMPLE DATA
+[
+  {
+    "id": 24,
+    "gender": "male",
+    "course_id": 7,
+    "wear_type": "upper",
+    "measurement_specs": [
+      {
+        "base_cm": 23,
+        "materials": [
+          {
+            "material_id": 1,
+            "quantity_per_cm": 2
+          }
+        ],
+        "measurement_type_id": 2,
+        "additional_cost_per_cm": 2
+      },
+      {
+        "base_cm": 78,
+        "materials": [
+          {
+            "material_id": 1,
+            "quantity_per_cm": 2
+          }
+        ],
+        "measurement_type_id": 5,
+        "additional_cost_per_cm": 2
+      },
+      {
+        "base_cm": 30,
+        "materials": [
+          {
+            "material_id": 1,
+            "quantity_per_cm": 3
+          }
+        ],
+        "measurement_type_id": 4,
+        "additional_cost_per_cm": 2
+      }
+    ],
+    "base_price": "800.00",
+    "created_at": "2025-05-20 08:44:10.193561+00",
+    "base_materials": [
+      {
+        "quantity": 50,
+        "material_id": 1
+      },
+      {
+        "quantity": 1,
+        "material_id": 2
+      }
+    ]
+  }
+]
 
 --INVENTORY TABLES
 CREATE TABLE inventory_items (
@@ -123,6 +172,20 @@ CREATE TABLE inventory_items (
   CONSTRAINT inventory_items_name_key UNIQUE (name)
 );
 CREATE INDEX IF NOT EXISTS idx_inventory_items_name ON inventory_items(name);
+--INVENTORY ITEMS SAMPLE DATA
+[
+  {
+    "id": 3,
+    "name": "Test 1",
+    "description": "adsa",
+    "unit_of_measurement": "box",
+    "quantity_available": "100.00",
+    "minimum_stock_level": "30.00",
+    "cost_per_unit": "10.00",
+    "created_at": "2025-05-20 08:47:20.170959+00",
+    "updated_at": "2025-05-20 08:47:19.548+00"
+  }
+]
 
 CREATE TABLE inventory_transactions (
   id bigint primary key generated always as identity,
@@ -139,3 +202,16 @@ CREATE TABLE inventory_transactions (
 );
 CREATE INDEX IF NOT EXISTS idx_inventory_transactions_item_id ON inventory_transactions(inventory_item_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_transactions_order_id ON inventory_transactions(order_id);
+--INVENTORY TRANSACTIONS SAMPLE DATA
+[
+  {
+    "id": 1,
+    "inventory_item_id": 1,
+    "transaction_type": "stock_in",
+    "quantity": "5000.00",
+    "notes": "Initial inventory",
+    "order_id": null, --NULL BECAUSE THIS IS AN INITIAL STOCK
+    "transaction_date": "2025-05-20 01:04:43.138993+00",
+    "created_by": "system"
+  }
+]
