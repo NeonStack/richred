@@ -52,8 +52,7 @@
         item.unit_of_measurement
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        item.quantity_available?.toString().includes(searchTerm) ||
-        item.cost_per_unit?.toString().includes(searchTerm)
+        item.quantity_available?.toString().includes(searchTerm)
     )
     ?.sort((a, b) => {
       let aVal = a[sortField];
@@ -397,32 +396,6 @@
                 </div>
               </th>
               <th class="p-4 text-left font-semibold text-gray-600"> Unit </th>
-              <th
-                class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
-                on:click={() => toggleSort("cost_per_unit")}
-              >
-                <div class="flex items-center gap-1">
-                  Cost
-                  {#if sortField === "cost_per_unit"}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 {sortDirection === 'asc'
-                        ? 'transform rotate-180'
-                        : ''}"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  {/if}
-                </div>
-              </th>
               <th class="p-4 text-left font-semibold text-gray-600">
                 Status
               </th>
@@ -437,7 +410,6 @@
                 <td class="p-4 text-gray-600">{item.description || "-"}</td>
                 <td class="p-4">{item.quantity_available.toFixed(2)}</td>
                 <td class="p-4">{item.unit_of_measurement}</td>
-                <td class="p-4">₱{item.cost_per_unit.toFixed(2)}</td>
                 <td class="p-4">
                   <span
                     class="px-2 py-1 rounded-full text-xs {getStockStatusClass(
@@ -827,23 +799,6 @@
                   name="minimumStockLevel"
                   id="minimumStockLevel"
                   value={selectedItem?.minimum_stock_level || "0"}
-                  min="0"
-                  step="0.01"
-                  class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  for="costPerUnit"
-                >
-                  Cost Per Unit (₱)
-                </label>
-                <input
-                  type="number"
-                  name="costPerUnit"
-                  id="costPerUnit"
-                  value={selectedItem?.cost_per_unit || "0"}
                   min="0"
                   step="0.01"
                   class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
