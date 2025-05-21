@@ -181,7 +181,7 @@
   function confirmAssignment() {
     if (hasEnoughMaterials) {
       dispatch('confirm', {
-        materialsToDeduct
+        materialsToDeduct: materialsToDeduct
       });
     }
   }

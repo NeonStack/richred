@@ -1565,7 +1565,7 @@
     uniformConfigs={data.uniformConfigs}
     inventoryItems={data.inventoryItems}
     isLoading={isLoading}
-    on:confirm={e => handleConfirmAssignment(e.detail)}
+    on:confirm={handleConfirmAssignment}
     on:cancel={() => showMaterialsConfirmation = false}
   />
 {/if}
