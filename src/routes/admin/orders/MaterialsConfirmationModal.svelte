@@ -12,6 +12,8 @@
   let hasEnoughMaterials = true;
   let materialsShortage = [];
   let materialBreakdown = []; // New: For detailed explanation of material usage
+  let orderMaterialRequirements = []; // New: Track per-order material requirements
+  let ordersWithShortages = []; // New: Track which orders contribute to shortages
 
   $: {
     if (selectedOrders.length > 0) {
@@ -24,7 +26,9 @@
     materialsToDeduct = [];
     hasEnoughMaterials = true;
     materialsShortage = [];
-    materialBreakdown = []; // Reset the breakdown
+    materialBreakdown = []; 
+    orderMaterialRequirements = []; // Reset order requirements
+    ordersWithShortages = []; // Reset shortage tracking
 
     // Get selected order objects
     const selectedOrderObjects = orders.filter(order => 
@@ -34,18 +38,30 @@
     // Create a map to accumulate materials
     const materialsMap = new Map();
     const breakdownMap = new Map(); // Track details for each material
+    const orderRequirementsMap = new Map(); // Track materials needed by each order
 
     // Process each order
     selectedOrderObjects.forEach(order => {
+      // Initialize order requirements tracking
+      const orderRequirements = {
+        id: order.id,
+        studentName: `${order.student?.first_name} ${order.student?.last_name}`,
+        uniformType: order.uniform_type,
+        materialRequirements: []
+      };
+      
       // Process for upper wear if applicable
       if (order.uniform_type === 'upper' || order.uniform_type === 'both') {
-        processUniformPart(order, 'upper', materialsMap, breakdownMap);
+        processUniformPart(order, 'upper', materialsMap, breakdownMap, orderRequirements);
       }
       
       // Process for lower wear if applicable
       if (order.uniform_type === 'lower' || order.uniform_type === 'both') {
-        processUniformPart(order, 'lower', materialsMap, breakdownMap);
+        processUniformPart(order, 'lower', materialsMap, breakdownMap, orderRequirements);
       }
+      
+      // Add to order requirements list
+      orderMaterialRequirements.push(orderRequirements);
     });
 
     // Convert the materials map to array and check inventory
@@ -62,6 +78,9 @@
           required: quantity,
           available: item ? parseFloat(item.quantity_available) : 0
         });
+        
+        // Identify orders contributing to shortage
+        identifyOrdersWithShortage(materialIdNum, item ? parseFloat(item.quantity_available) : 0);
       }
 
       return {
@@ -75,13 +94,40 @@
 
     // Create detailed breakdown for UI
     materialBreakdown = Array.from(breakdownMap.values()).sort((a, b) => a.materialName.localeCompare(b.materialName));
-
-    // Log the calculated materials for debugging
-    console.log("Materials to deduct:", materialsToDeduct);
-    console.log("Material breakdown:", materialBreakdown);
   }
 
-  function processUniformPart(order, wearType, materialsMap, breakdownMap) {
+  // New function to identify which orders contribute to material shortages
+  function identifyOrdersWithShortage(materialId, availableQuantity) {
+    // Sort orders by their material requirements for this material (highest first)
+    const ordersUsingMaterial = orderMaterialRequirements
+      .filter(order => order.materialRequirements.some(req => req.materialId === materialId))
+      .sort((a, b) => {
+        const aQty = a.materialRequirements.find(req => req.materialId === materialId)?.quantity || 0;
+        const bQty = b.materialRequirements.find(req => req.materialId === materialId)?.quantity || 0;
+        return bQty - aQty; // Descending order
+      });
+      
+    // Start tracking usage from available quantity
+    let remainingQty = availableQuantity;
+    
+    // Mark orders that would exceed available quantity
+    ordersUsingMaterial.forEach(order => {
+      const requirement = order.materialRequirements.find(req => req.materialId === materialId);
+      if (requirement) {
+        if (remainingQty >= requirement.quantity) {
+          // This order can be fulfilled with remaining materials
+          remainingQty -= requirement.quantity;
+        } else {
+          // This order contributes to the shortage
+          if (!ordersWithShortages.includes(order.id)) {
+            ordersWithShortages.push(order.id);
+          }
+        }
+      }
+    });
+  }
+
+  function processUniformPart(order, wearType, materialsMap, breakdownMap, orderRequirements) {
     // Find uniform config for this order part
     const config = uniformConfigs.find(cfg => 
       cfg.course_id === order.student.course_id && 
@@ -96,8 +142,23 @@
     if (config.base_materials && Array.isArray(config.base_materials)) {
       config.base_materials.forEach(material => {
         const materialId = material.material_id.toString();
+        const numMaterialId = parseInt(materialId);
         const currentAmount = materialsMap.get(materialId) || 0;
         materialsMap.set(materialId, currentAmount + material.quantity);
+        
+        // Track for this specific order
+        const existingReq = orderRequirements.materialRequirements.find(req => req.materialId === numMaterialId);
+        if (existingReq) {
+          existingReq.quantity += material.quantity;
+        } else {
+          const materialItem = inventoryItems.find(item => item.id === numMaterialId);
+          orderRequirements.materialRequirements.push({
+            materialId: numMaterialId,
+            materialName: materialItem ? materialItem.name : `Material #${numMaterialId}`,
+            quantity: material.quantity,
+            unit: materialItem ? materialItem.unit_of_measurement : 'units'
+          });
+        }
         
         // Add to breakdown
         updateBreakdown(breakdownMap, materialId, material.quantity, order.id, "base", 
@@ -120,9 +181,24 @@
           if (spec.materials && Array.isArray(spec.materials)) {
             spec.materials.forEach(material => {
               const materialId = material.material_id.toString();
+              const numMaterialId = parseInt(materialId);
               const additionalMaterial = exceededCm * material.quantity_per_cm;
               const currentAmount = materialsMap.get(materialId) || 0;
               materialsMap.set(materialId, currentAmount + additionalMaterial);
+              
+              // Track for this specific order
+              const existingReq = orderRequirements.materialRequirements.find(req => req.materialId === numMaterialId);
+              if (existingReq) {
+                existingReq.quantity += additionalMaterial;
+              } else {
+                const materialItem = inventoryItems.find(item => item.id === numMaterialId);
+                orderRequirements.materialRequirements.push({
+                  materialId: numMaterialId,
+                  materialName: materialItem ? materialItem.name : `Material #${numMaterialId}`,
+                  quantity: additionalMaterial,
+                  unit: materialItem ? materialItem.unit_of_measurement : 'units'
+                });
+              }
               
               // Add to breakdown with specific details
               updateBreakdown(breakdownMap, materialId, additionalMaterial, order.id, "excess", 
@@ -280,6 +356,75 @@
         </table>
       </div>
     </div>
+
+    <!-- Order-specific material requirements when there are shortages -->
+    {#if !hasEnoughMaterials}
+      <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          Orders Contributing to Shortages
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          The following orders require materials that exceed available inventory. Consider removing some of these orders.
+        </p>
+        
+        <div class="border rounded-lg overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left">Order ID</th>
+                <th class="px-4 py-2 text-left">Student</th>
+                <th class="px-4 py-2 text-left">Uniform Type</th>
+                <th class="px-4 py-2 text-left">Material Requirements</th>
+                <th class="px-4 py-2 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              {#each orderMaterialRequirements as order}
+                <tr class={ordersWithShortages.includes(order.id) ? 'bg-red-50' : ''}>
+                  <td class="px-4 py-3">#{order.id}</td>
+                  <td class="px-4 py-3">{order.studentName}</td>
+                  <td class="px-4 py-3 capitalize">{order.uniformType}</td>
+                  <td class="px-4 py-3">
+                    <div class="space-y-1">
+                      {#each order.materialRequirements as req}
+                        <div class="flex justify-between text-sm">
+                          <span class={materialsShortage.some(m => m.materialId === req.materialId) ? 'text-red-600 font-medium' : ''}>
+                            {req.materialName}:
+                          </span>
+                          <span class={materialsShortage.some(m => m.materialId === req.materialId) ? 'text-red-600 font-medium' : ''}>
+                            {req.quantity.toFixed(2)} {req.unit}
+                          </span>
+                        </div>
+                      {/each}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    {#if ordersWithShortages.includes(order.id)}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="-ml-0.5 mr-1.5 h-2 w-2 text-red-400" fill="currentColor" viewBox="0 0 8 8">
+                          <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        Insufficient Materials
+                      </span>
+                    {:else}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                          <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        Sufficient Materials
+                      </span>
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
 
     <!-- Detailed Material Breakdown -->
     <div class="mb-6">
