@@ -16,6 +16,7 @@
   let searchTerm = "";
   let showDeleteModal = false;
   let configToDelete = null;
+  let currentBasePrice = 0;
 
   // Sorting logic
   let sortField = "created_at";
@@ -69,6 +70,13 @@
     showForm = false;
     isLoading = false;
     selectedMeasurements = new Set();
+    currentBasePrice = 0; // ADDED: Reset currentBasePrice
+    uniformBaseMaterials = new Set(); // ADDED: Reset base materials
+    uniformBaseMaterialQuantities = {}; // ADDED: Reset base material quantities
+    measurementSpecs = {}; // ADDED: Reset measurement specs
+    selectedMaterialsByMeasurement = {}; // ADDED: Reset selected materials for measurements
+    exampleStudentSize = {}; // ADDED: Reset example student sizes
+    exampleAddToAll = 0; // ADDED: Reset example add to all
   }
 
   function showError(message) {
@@ -183,6 +191,8 @@
     selectedCourseId = selectedConfig.course_id?.toString(); // Ensure selectedCourseId is a string
     selectedGender = selectedConfig.gender;
     selectedWearType = selectedConfig.wear_type;
+    currentBasePrice = selectedConfig.base_price || 0;
+    measurementSpecs = {};
   }
 
   // Add pagination state
@@ -463,27 +473,41 @@
   // Make all calculation functions reactive to their inputs
   $: calculateMeasurementPrice = (typeId) => {
     const spec = measurementSpecs[typeId] || {};
-    const extraCm = Math.max(0, getExampleDifference(typeId));
-    const additionalCost = extraCm * (spec.additional_cost_per_cm || 0);
+    const baseCm = parseFloat(spec.base_cm || 0);
+    const studentCm = parseFloat(exampleStudentSize[typeId] || 0);
+    const costPerCm = parseFloat(spec.additional_cost_per_cm || 0);
     
-    return additionalCost.toFixed(2);
+    // Only charge for additional cm above the base
+    const extraCm = Math.max(0, studentCm - baseCm);
+    const additionalCost = extraCm * costPerCm;
+    
+    return additionalCost;
   };
 
   $: calculateTotalPrice = () => {
-    let total = parseFloat(selectedConfig?.base_price || 0);
-    
-    selectedMeasurements.forEach(typeId => {
-      total += parseFloat(calculateMeasurementPrice(typeId));
-    });
+    let total = parseFloat(currentBasePrice || 0);
+
+    // Calculate additional costs for each measurement
+    if (selectedMeasurements.size > 0) {
+      selectedMeasurements.forEach(typeId => {
+        const additionalCost = calculateMeasurementPrice(typeId);
+        total += additionalCost;
+      });
+    }
     
     return total.toFixed(2);
   };
 
+  // Calculate material usage - only apply for excess measurement beyond the base size
   $: exampleMaterialTotal = (materialSpec, typeId) => {
+    const spec = measurementSpecs[typeId] || {};
+    const baseCm = parseFloat(spec.base_cm || 0);
+    const studentCm = parseFloat(exampleStudentSize[typeId] || 0);
     const quantityPerCm = parseFloat(materialSpec.quantity_per_cm) || 0;
-    const studentSize = parseFloat(exampleStudentSize[typeId]) || 0;
     
-    return (quantityPerCm * studentSize).toFixed(2);
+    // Only use additional material for the excess amount over base
+    const excessCm = Math.max(0, studentCm - baseCm);
+    return (quantityPerCm * excessCm).toFixed(2);
   };
 
   $: getAllMaterialsNeeded = () => {
@@ -569,6 +593,17 @@
       on:click={() => {
         selectedConfig = null;
         showForm = true;
+        currentBasePrice = 0;
+        selectedCourseId = "";
+        selectedGender = "";
+        selectedWearType = "";
+        selectedMeasurements = new Set();
+        uniformBaseMaterials = new Set();
+        uniformBaseMaterialQuantities = {};
+        measurementSpecs = {};
+        selectedMaterialsByMeasurement = {};
+        exampleStudentSize = {};
+        exampleAddToAll = 0;
       }}
       class="w-full md:w-auto bg-primary text-white px-4 py-2 rounded-lg"
       disabled={isLoading}
@@ -1036,8 +1071,8 @@
                       <input
                         type="number"
                         name="basePrice"
-                        step="0.01"
-                        value={selectedConfig?.base_price || ""}
+                        step="0.1"
+                        bind:value={currentBasePrice}
                         class="block w-full px-3 py-2 rounded-lg border border-gray-200 bg-white/50 focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                         required
                       />
@@ -1110,9 +1145,9 @@
                       <div class="flex items-center flex-wrap gap-1 mt-1">
                         <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded">Material per cm</span>
                         <span>×</span>
-                        <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded whitespace-nowrap">Student's measurement (cm)</span>
+                        <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded whitespace-nowrap">Excess measurement (cm)</span>
                         <span>=</span>
-                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded">Total Materials Used</span>
+                        <span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded">Extra Materials Used</span>
                       </div>
                     </div>
                   </div>
@@ -1204,8 +1239,8 @@
                                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                       </svg>
-                                      <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 w-64 p-2 bg-gray-800 text-white text-xs rounded">
-                                        Specify how much material is needed per centimeter of student's measurement beyond the standard size. Total material is calculated by multiplying this value by the student's actual measurement.
+                                      <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 w-72 p-2 bg-gray-800 text-white text-xs rounded">
+                                        Specify how much material is needed <strong>per centimeter of excess</strong> beyond the base size. These materials are only used for the portion that exceeds the standard measurement.
                                       </div>
                                     </span>
                                   </h5>
@@ -1424,11 +1459,23 @@
                                   {#each Array.from(materials) as materialId}
                                     {@const material = inventoryItems.find(item => item.id === materialId)}
                                     {@const materialSpec = getMaterialsForMeasurement(typeId).find(m => m.material_id === materialId)}
+                                    {@const extraCm = Math.max(0, getExampleDifference(typeId))}
                                     
                                     {#if material && materialSpec}
                                       <div class="text-xs flex justify-between">
-                                        <span>{material.name}:</span>
-                                        <span class="font-medium">{exampleMaterialTotal(materialSpec, typeId)} {material.unit_of_measurement}</span>
+                                        <span>
+                                          {material.name}: 
+                                          <span class="text-gray-500">
+                                            {#if extraCm > 0}
+                                              ({extraCm}cm excess × {materialSpec.quantity_per_cm} {material.unit_of_measurement}/cm)
+                                            {:else}
+                                              (no excess, no material needed)
+                                            {/if}
+                                          </span>
+                                        </span>
+                                        <span class="font-medium {extraCm > 0 ? 'text-blue-700' : 'text-gray-400'}">
+                                          {exampleMaterialTotal(materialSpec, typeId)} {material.unit_of_measurement}
+                                        </span>
                                       </div>
                                     {/if}
                                   {/each}
@@ -1458,20 +1505,24 @@
                           <div class="space-y-1 mb-2">
                             <div class="flex justify-between text-xs">
                               <span>Base Price:</span>
-                              <span class="font-medium">₱{parseFloat(selectedConfig?.base_price || 0).toFixed(2)}</span>
+                              <span class="font-medium">₱{parseFloat(currentBasePrice || 0).toFixed(2)}</span>
                             </div>
                             
                             {#each Array.from(selectedMeasurements) as typeId}
                               {@const measurementType = measurementTypes.find(m => m.id === typeId)}
                               {@const extraCm = Math.max(0, getExampleDifference(typeId))}
+                              {@const costPerCm = measurementSpecs[typeId]?.additional_cost_per_cm || 0}
+                              {@const additionalCost = calculateMeasurementPrice(typeId)}
                               {@const spec = measurementSpecs[typeId] || {}}
                               
-                              {#if extraCm > 0}
-                                <div class="flex justify-between text-xs">
-                                  <span>{measurementType?.name || 'Unknown'} (+{extraCm} cm):</span>
-                                  <span>₱{calculateMeasurementPrice(typeId)}</span>
-                                </div>
-                              {/if}
+                              <div class="flex justify-between text-xs {extraCm > 0 ? 'font-medium text-blue-800' : 'text-gray-500'}">
+                                <span class="flex-1">{measurementType?.name || 'Unknown'} 
+                                  <span class="{extraCm > 0 ? 'text-blue-700' : 'text-gray-500'}">
+                                    ({spec.base_cm || 0}cm {extraCm > 0 ? `+ ${extraCm}cm extra @ ₱${costPerCm}/cm` : '(no extra)'})
+                                  </span>:
+                                </span>
+                                <span class="{extraCm > 0 ? 'font-medium' : ''}">₱{additionalCost.toFixed(2)}</span>
+                              </div>
                             {/each}
                           </div>
                           
