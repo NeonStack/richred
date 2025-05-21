@@ -20,7 +20,7 @@
 
   // Tab management
   let activeTab = "inventory";
-  
+
   // Initialize tab from URL parameter
   onMount(() => {
     const tabParam = $page.url.searchParams.get("tab");
@@ -49,7 +49,9 @@
       (item) =>
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.unit_of_measurement?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.unit_of_measurement
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         item.quantity_available?.toString().includes(searchTerm) ||
         item.cost_per_unit?.toString().includes(searchTerm)
     )
@@ -80,7 +82,7 @@
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   }
 
@@ -110,12 +112,12 @@
     isLoading = true;
     return async ({ result }) => {
       isLoading = false;
-      
-      if (result.type === 'success') {
+
+      if (result.type === "success") {
         resetItemForm();
-        await invalidate('app:inventory');
+        await invalidate("app:inventory");
         window.location.reload(); // Force reload to ensure fresh data
-      } else if (result.type === 'error') {
+      } else if (result.type === "error") {
         showError(result.data?.error || "Operation failed");
       }
     };
@@ -125,12 +127,12 @@
     isLoading = true;
     return async ({ result }) => {
       isLoading = false;
-      
-      if (result.type === 'success') {
+
+      if (result.type === "success") {
         resetStockForm();
-        await invalidate('app:inventory');
+        await invalidate("app:inventory");
         window.location.reload(); // Force reload to ensure fresh data
-      } else if (result.type === 'error') {
+      } else if (result.type === "error") {
         showError(result.data?.error || "Operation failed");
       }
     };
@@ -142,19 +144,19 @@
       isLoading = false;
       resetDeleteModal();
 
-      if (result.type === 'success') {
-        await invalidate('app:inventory');
+      if (result.type === "success") {
+        await invalidate("app:inventory");
         window.location.reload();
-      } else if (result.type === 'error') {
+      } else if (result.type === "error") {
         showError(result.data?.error || "Delete operation failed");
       }
     };
   };
 
   // For stock update form
-  let transactionType = 'stock_in';
+  let transactionType = "stock_in";
   let transactionQuantity = 0;
-  let transactionNotes = '';
+  let transactionNotes = "";
 
   // Add pagination state
   let currentPage = 1;
@@ -168,8 +170,10 @@
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
-  
-  $: totalTransactionPages = Math.ceil((recentTransactions?.length || 0) / transactionsPerPage);
+
+  $: totalTransactionPages = Math.ceil(
+    (recentTransactions?.length || 0) / transactionsPerPage
+  );
   $: paginatedTransactions = recentTransactions?.slice(
     (currentTransactionPage - 1) * transactionsPerPage,
     currentTransactionPage * transactionsPerPage
@@ -178,7 +182,8 @@
   // Navigation functions
   function nextPage(isTransaction = false) {
     if (isTransaction) {
-      if (currentTransactionPage < totalTransactionPages) currentTransactionPage++;
+      if (currentTransactionPage < totalTransactionPages)
+        currentTransactionPage++;
     } else {
       if (currentPage < totalPages) currentPage++;
     }
@@ -206,22 +211,20 @@
   }
 
   // Generate page numbers for pagination
-  $: pageNumbers = Array.from(
-    { length: Math.min(5, totalPages) },
-    (_, i) => {
-      if (totalPages <= 5) return i + 1;
-      if (currentPage <= 3) return i + 1;
-      if (currentPage >= totalPages - 2) return totalPages - 4 + i;
-      return currentPage - 2 + i;
-    }
-  );
-  
+  $: pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+    if (totalPages <= 5) return i + 1;
+    if (currentPage <= 3) return i + 1;
+    if (currentPage >= totalPages - 2) return totalPages - 4 + i;
+    return currentPage - 2 + i;
+  });
+
   $: transactionPageNumbers = Array.from(
     { length: Math.min(5, totalTransactionPages) },
     (_, i) => {
       if (totalTransactionPages <= 5) return i + 1;
       if (currentTransactionPage <= 3) return i + 1;
-      if (currentTransactionPage >= totalTransactionPages - 2) return totalTransactionPages - 4 + i;
+      if (currentTransactionPage >= totalTransactionPages - 2)
+        return totalTransactionPages - 4 + i;
       return currentTransactionPage - 2 + i;
     }
   );
@@ -229,50 +232,58 @@
   // Helper function to get transaction type badge class
   function getTransactionBadgeClass(type) {
     switch (type) {
-      case 'stock_in':
-        return 'bg-green-100 text-green-800';
-      case 'stock_out':
-        return 'bg-red-100 text-red-800';
-      case 'adjustment':
-        return 'bg-blue-100 text-blue-800';
-      case 'reservation':
-        return 'bg-yellow-100 text-yellow-800';
+      case "stock_in":
+        return "bg-green-100 text-green-800";
+      case "stock_out":
+        return "bg-red-100 text-red-800";
+      case "adjustment":
+        return "bg-blue-100 text-blue-800";
+      case "reservation":
+        return "bg-yellow-100 text-yellow-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   }
 
   // Format stock status
   function getStockStatusClass(item) {
     if (item.quantity_available <= 0) {
-      return 'bg-red-100 text-red-800';
+      return "bg-red-100 text-red-800";
     } else if (item.quantity_available <= item.minimum_stock_level) {
-      return 'bg-yellow-100 text-yellow-800';
+      return "bg-yellow-100 text-yellow-800";
     } else {
-      return 'bg-green-100 text-green-800';
+      return "bg-green-100 text-green-800";
     }
   }
-  
+
   function getStockStatusText(item) {
     if (item.quantity_available <= 0) {
-      return 'Out of Stock';
+      return "Out of Stock";
     } else if (item.quantity_available <= item.minimum_stock_level) {
-      return 'Low Stock';
+      return "Low Stock";
     } else {
-      return 'In Stock';
+      return "In Stock";
     }
   }
 </script>
 
 <div class="p-6">
   <!-- Header Section -->
-  <div class="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mb-6">
+  <div
+    class="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0 mb-6"
+  >
     <div class="flex items-center gap-4">
       <div class="bg-primary/10 p-3 rounded-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="text-primary w-6 h-6" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M20 4L4 4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zm-1 14H5V6h14v12z"/>
-          <path fill="currentColor" d="M12 8H8v4h4V8zm2 0v4h2V8h-2zm-6 6v2h10v-2H8z"/>
-        </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          class="text-primary"
+        ><path
+          fill="currentColor"
+          d="M3 22V9H2V2h20v7h-1v13zM4 7h16V4H4zm5 7h6v-2H9z"
+        /></svg>
       </div>
       <div>
         <h1 class="text-2xl font-bold text-gray-800">Inventory Management</h1>
@@ -295,22 +306,28 @@
   <div class="bg-white rounded-lg shadow-md">
     <div class="flex border-b border-gray-200">
       <button
-        class="px-4 py-2 border-b-2 {activeTab === 'inventory' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-primary'} font-medium"
-        on:click={() => setActiveTab('inventory')}
+        class="px-4 py-2 border-b-2 {activeTab === 'inventory'
+          ? 'border-primary text-primary'
+          : 'border-transparent text-gray-500 hover:text-primary'} font-medium"
+        on:click={() => setActiveTab("inventory")}
       >
         Inventory Items
       </button>
       <button
-        class="px-4 py-2 border-b-2 {activeTab === 'transactions' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-primary'} font-medium"
-        on:click={() => setActiveTab('transactions')}
+        class="px-4 py-2 border-b-2 {activeTab === 'transactions'
+          ? 'border-primary text-primary'
+          : 'border-transparent text-gray-500 hover:text-primary'} font-medium"
+        on:click={() => setActiveTab("transactions")}
       >
         Recent Transactions
       </button>
     </div>
 
     <!-- Inventory Items List -->
-    <div class="p-6" class:hidden={activeTab !== 'inventory'}>
-      <div class="flex flex-col md:flex-row justify-between gap-4 md:gap-0 mb-4">
+    <div class="p-6" class:hidden={activeTab !== "inventory"}>
+      <div
+        class="flex flex-col md:flex-row justify-between gap-4 md:gap-0 mb-4"
+      >
         <h2 class="text-xl font-semibold">Materials List</h2>
         <input
           type="text"
@@ -333,7 +350,9 @@
                   {#if sortField === "name"}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -360,7 +379,9 @@
                   {#if sortField === "quantity_available"}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -375,9 +396,7 @@
                   {/if}
                 </div>
               </th>
-              <th class="p-4 text-left font-semibold text-gray-600">
-                Unit
-              </th>
+              <th class="p-4 text-left font-semibold text-gray-600"> Unit </th>
               <th
                 class="p-4 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100"
                 on:click={() => toggleSort("cost_per_unit")}
@@ -387,7 +406,9 @@
                   {#if sortField === "cost_per_unit"}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 {sortDirection === 'asc' ? 'transform rotate-180' : ''}"
+                      class="h-4 w-4 {sortDirection === 'asc'
+                        ? 'transform rotate-180'
+                        : ''}"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -405,7 +426,8 @@
               <th class="p-4 text-left font-semibold text-gray-600">
                 Status
               </th>
-              <th class="p-4 text-right font-semibold text-gray-600">Actions</th>
+              <th class="p-4 text-right font-semibold text-gray-600">Actions</th
+              >
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -417,7 +439,11 @@
                 <td class="p-4">{item.unit_of_measurement}</td>
                 <td class="p-4">₱{item.cost_per_unit.toFixed(2)}</td>
                 <td class="p-4">
-                  <span class="px-2 py-1 rounded-full text-xs {getStockStatusClass(item)}">
+                  <span
+                    class="px-2 py-1 rounded-full text-xs {getStockStatusClass(
+                      item
+                    )}"
+                  >
                     {getStockStatusText(item)}
                   </span>
                 </td>
@@ -436,9 +462,9 @@
                     on:click={() => {
                       selectedItem = item;
                       showStockForm = true;
-                      transactionType = 'stock_in';
+                      transactionType = "stock_in";
                       transactionQuantity = 0;
-                      transactionNotes = '';
+                      transactionNotes = "";
                     }}
                   >
                     Stock
@@ -470,7 +496,9 @@
                       />
                     </svg>
                     <p class="text-lg font-medium">No inventory items found</p>
-                    <p class="text-sm">Try adjusting your search or add new materials</p>
+                    <p class="text-sm">
+                      Try adjusting your search or add new materials
+                    </p>
                   </div>
                 </td>
               </tr>
@@ -523,36 +551,56 @@
     </div>
 
     <!-- Recent Transactions -->
-    <div class="p-6 {activeTab === 'inventory' ? 'border-t border-gray-200 hidden' : ''}" class:hidden={activeTab !== 'transactions'}>
+    <div
+      class="p-6 {activeTab === 'inventory'
+        ? 'border-t border-gray-200 hidden'
+        : ''}"
+      class:hidden={activeTab !== "transactions"}
+    >
       <h2 class="text-xl font-semibold mb-4">Recent Transactions</h2>
-      
+
       <div class="overflow-x-auto">
         <table class="w-full min-w-[800px]">
           <thead>
             <tr class="bg-gray-50">
               <th class="p-3 text-left font-semibold text-gray-600">Date</th>
-              <th class="p-3 text-left font-semibold text-gray-600">Material</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Material</th
+              >
               <th class="p-3 text-left font-semibold text-gray-600">Type</th>
-              <th class="p-3 text-left font-semibold text-gray-600">Quantity</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Quantity</th
+              >
               <th class="p-3 text-left font-semibold text-gray-600">Notes</th>
-              <th class="p-3 text-left font-semibold text-gray-600">Created By</th>
+              <th class="p-3 text-left font-semibold text-gray-600"
+                >Created By</th
+              >
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             {#each paginatedTransactions || [] as transaction (transaction.id)}
               <tr class="hover:bg-gray-50 transition-colors">
-                <td class="p-3 text-sm">{formatDate(transaction.transaction_date)}</td>
-                <td class="p-3 font-medium">{transaction.inventory_items?.name || 'Unknown'}</td>
+                <td class="p-3 text-sm"
+                  >{formatDate(transaction.transaction_date)}</td
+                >
+                <td class="p-3 font-medium"
+                  >{transaction.inventory_items?.name || "Unknown"}</td
+                >
                 <td class="p-3">
-                  <span class="px-2 py-1 rounded-full text-xs {getTransactionBadgeClass(transaction.transaction_type)}">
-                    {transaction.transaction_type.replace('_', ' ')}
+                  <span
+                    class="px-2 py-1 rounded-full text-xs {getTransactionBadgeClass(
+                      transaction.transaction_type
+                    )}"
+                  >
+                    {transaction.transaction_type.replace("_", " ")}
                   </span>
                 </td>
                 <td class="p-3">
-                  {transaction.transaction_type === 'stock_out' ? '-' : '+'}{transaction.quantity.toFixed(2)}
+                  {transaction.transaction_type === "stock_out"
+                    ? "-"
+                    : "+"}{transaction.quantity.toFixed(2)}
                 </td>
                 <td class="p-3 text-gray-600">{transaction.notes || "-"}</td>
-                <td class="p-3 text-sm">{transaction.created_by || "system"}</td>
+                <td class="p-3 text-sm">{transaction.created_by || "system"}</td
+                >
               </tr>
             {:else}
               <tr>
@@ -563,7 +611,7 @@
             {/each}
           </tbody>
         </table>
-        
+
         <!-- Transactions Pagination -->
         <div class="flex items-center justify-between px-4 py-3 border-t">
           <div class="flex items-center text-sm text-gray-500">
@@ -585,7 +633,8 @@
 
             {#each transactionPageNumbers as pageNum}
               <button
-                class="px-3 py-1 rounded border {currentTransactionPage === pageNum
+                class="px-3 py-1 rounded border {currentTransactionPage ===
+                pageNum
                   ? 'bg-primary text-white'
                   : 'hover:bg-gray-50'}"
                 on:click={() => goToPage(pageNum, true)}
@@ -595,7 +644,8 @@
             {/each}
 
             <button
-              class="px-3 py-1 rounded border {currentTransactionPage === totalTransactionPages
+              class="px-3 py-1 rounded border {currentTransactionPage ===
+              totalTransactionPages
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'hover:bg-gray-50'}"
               on:click={() => nextPage(true)}
@@ -611,15 +661,21 @@
 
   <!-- Item Form Modal -->
   {#if showItemForm}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl w-full max-w-lg shadow-xl overflow-hidden">
+    <div
+      class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-xl w-full max-w-lg shadow-xl overflow-hidden"
+      >
         <!-- Modal Header -->
         <div class="p-6 bg-gradient-to-r from-primary to-primary-dark border-b">
           <h2 class="text-2xl font-bold text-white">
             {selectedItem ? "Edit Material" : "Add New Material"}
           </h2>
           <p class="text-sm text-white/80 mt-1">
-            {selectedItem ? "Update material information" : "Add a new material to inventory"}
+            {selectedItem
+              ? "Update material information"
+              : "Add a new material to inventory"}
           </p>
         </div>
 
@@ -637,7 +693,10 @@
             {/if}
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="name">
+              <label
+                class="block text-sm font-medium text-gray-700 mb-1"
+                for="name"
+              >
                 Material Name
               </label>
               <input
@@ -651,7 +710,10 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="description">
+              <label
+                class="block text-sm font-medium text-gray-700 mb-1"
+                for="description"
+              >
                 Description
               </label>
               <textarea
@@ -659,12 +721,16 @@
                 id="description"
                 rows="2"
                 class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >{selectedItem?.description || ""}</textarea>
+                >{selectedItem?.description || ""}</textarea
+              >
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="unitOfMeasurement">
+                <label
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  for="unitOfMeasurement"
+                >
                   Unit of Measurement
                 </label>
                 <select
@@ -673,22 +739,66 @@
                   class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 >
-                  <option value="" disabled selected={!selectedItem?.unit_of_measurement}>Select Unit</option>
-                  <option value="cm" selected={selectedItem?.unit_of_measurement === "cm"}>Centimeter (cm)</option>
-                  <option value="m" selected={selectedItem?.unit_of_measurement === "m"}>Meter (m)</option>
-                  <option value="piece" selected={selectedItem?.unit_of_measurement === "piece"}>Piece</option>
-                  <option value="roll" selected={selectedItem?.unit_of_measurement === "roll"}>Roll</option>
-                  <option value="yard" selected={selectedItem?.unit_of_measurement === "yard"}>Yard</option>
-                  <option value="kg" selected={selectedItem?.unit_of_measurement === "kg"}>Kilogram (kg)</option>
-                  <option value="g" selected={selectedItem?.unit_of_measurement === "g"}>Gram (g)</option>
-                  <option value="box" selected={selectedItem?.unit_of_measurement === "box"}>Box</option>
-                  <option value="pack" selected={selectedItem?.unit_of_measurement === "pack"}>Pack</option>
+                  <option
+                    value=""
+                    disabled
+                    selected={!selectedItem?.unit_of_measurement}
+                    >Select Unit</option
+                  >
+                  <option
+                    value="cm"
+                    selected={selectedItem?.unit_of_measurement === "cm"}
+                    >Centimeter (cm)</option
+                  >
+                  <option
+                    value="m"
+                    selected={selectedItem?.unit_of_measurement === "m"}
+                    >Meter (m)</option
+                  >
+                  <option
+                    value="piece"
+                    selected={selectedItem?.unit_of_measurement === "piece"}
+                    >Piece</option
+                  >
+                  <option
+                    value="roll"
+                    selected={selectedItem?.unit_of_measurement === "roll"}
+                    >Roll</option
+                  >
+                  <option
+                    value="yard"
+                    selected={selectedItem?.unit_of_measurement === "yard"}
+                    >Yard</option
+                  >
+                  <option
+                    value="kg"
+                    selected={selectedItem?.unit_of_measurement === "kg"}
+                    >Kilogram (kg)</option
+                  >
+                  <option
+                    value="g"
+                    selected={selectedItem?.unit_of_measurement === "g"}
+                    >Gram (g)</option
+                  >
+                  <option
+                    value="box"
+                    selected={selectedItem?.unit_of_measurement === "box"}
+                    >Box</option
+                  >
+                  <option
+                    value="pack"
+                    selected={selectedItem?.unit_of_measurement === "pack"}
+                    >Pack</option
+                  >
                 </select>
               </div>
 
               {#if !selectedItem}
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1" for="quantityAvailable">
+                  <label
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    for="quantityAvailable"
+                  >
                     Initial Quantity
                   </label>
                   <input
@@ -706,7 +816,10 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="minimumStockLevel">
+                <label
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  for="minimumStockLevel"
+                >
                   Minimum Stock Level
                 </label>
                 <input
@@ -720,7 +833,10 @@
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="costPerUnit">
+                <label
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  for="costPerUnit"
+                >
                   Cost Per Unit (₱)
                 </label>
                 <input
@@ -753,7 +869,11 @@
             class="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary-dark"
             disabled={isLoading}
           >
-            {isLoading ? "Saving..." : selectedItem ? "Update Material" : "Add Material"}
+            {isLoading
+              ? "Saving..."
+              : selectedItem
+                ? "Update Material"
+                : "Add Material"}
           </button>
         </div>
       </div>
@@ -762,15 +882,20 @@
 
   <!-- Stock Update Modal -->
   {#if showStockForm && selectedItem}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden">
+    <div
+      class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden"
+      >
         <!-- Modal Header -->
         <div class="p-6 bg-gradient-to-r from-primary to-primary-dark border-b">
-          <h2 class="text-2xl font-bold text-white">
-            Update Stock
-          </h2>
+          <h2 class="text-2xl font-bold text-white">Update Stock</h2>
           <p class="text-sm text-white/80 mt-1">
-            {selectedItem.name} - Current Stock: {selectedItem.quantity_available.toFixed(2)} {selectedItem.unit_of_measurement}
+            {selectedItem.name} - Current Stock: {selectedItem.quantity_available.toFixed(
+              2
+            )}
+            {selectedItem.unit_of_measurement}
           </p>
         </div>
 
@@ -787,7 +912,10 @@
             <input type="hidden" name="createdBy" value="admin" />
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="transactionType">
+              <label
+                class="block text-sm font-medium text-gray-700 mb-1"
+                for="transactionType"
+              >
                 Transaction Type
               </label>
               <select
@@ -804,8 +932,11 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="quantity">
-                {transactionType === 'adjustment' ? 'New Quantity' : 'Quantity'}
+              <label
+                class="block text-sm font-medium text-gray-700 mb-1"
+                for="quantity"
+              >
+                {transactionType === "adjustment" ? "New Quantity" : "Quantity"}
               </label>
               <input
                 type="number"
@@ -817,7 +948,7 @@
                 class="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
-              {#if transactionType === 'adjustment'}
+              {#if transactionType === "adjustment"}
                 <p class="text-xs text-gray-500 mt-1">
                   This will set the total quantity to exactly this value.
                 </p>
@@ -825,7 +956,10 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1" for="notes">
+              <label
+                class="block text-sm font-medium text-gray-700 mb-1"
+                for="notes"
+              >
                 Notes
               </label>
               <textarea
@@ -864,12 +998,18 @@
 
   <!-- Delete Confirmation Modal -->
   {#if showDeleteModal}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden">
+    <div
+      class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden"
+      >
         <div class="p-6">
           <h2 class="text-xl font-bold text-red-600 mb-4">Confirm Delete</h2>
           <p class="mb-6">
-            Are you sure you want to delete <span class="font-medium">{itemToDelete?.name}</span>? This action cannot be undone.
+            Are you sure you want to delete <span class="font-medium"
+              >{itemToDelete?.name}</span
+            >? This action cannot be undone.
           </p>
           <div class="flex justify-end gap-3">
             <button
@@ -902,8 +1042,12 @@
 
   <!-- Error Modal -->
   {#if showErrorModal}
-    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden">
+    <div
+      class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+    >
+      <div
+        class="bg-white rounded-xl w-full max-w-md shadow-xl overflow-hidden"
+      >
         <div class="p-6">
           <h2 class="text-xl font-bold text-red-600 mb-4">Error</h2>
           <p class="mb-6">{errorMessage}</p>

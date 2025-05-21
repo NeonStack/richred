@@ -25,7 +25,7 @@
       name: "Inventory Management",
       href: "/admin/inventory",
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" {...$$props}>
-        <path fill="currentColor" d="M20 2H4c-1 0-2 .9-2 2v3h20V4c0-1.1-.9-2-2-2zM2 19c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-3H2v3zm0-8h20v3H2v-3zm4-3h2v3H6V8zm0 8h2v3H6v-3zm12-8h-6v3h6V8z" />
+        <path fill="currentColor" d="M3 22V9H2V2h20v7h-1v13zM4 7h16V4H4zm5 7h6v-2H9z" />
       </svg>`,
     },
     {
