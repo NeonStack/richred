@@ -418,14 +418,17 @@
   };
 
   // Add this function to handle material confirmation
-  async function handleConfirmAssignment(materials) {
+  async function handleConfirmAssignment(event) {
     isLoading = true;
     
     try {
+      const materials = event.detail.materialsToDeduct;
+      const orderIds = event.detail.orderIds || selectedOrders; // Use specific orders or fall back to all selected
+      
       const formData = new FormData();
       formData.append('employeeId', selectedEmployee.id);
-      formData.append('orderIds', selectedOrders.join(','));
-      formData.append('materialsData', JSON.stringify(materials.materialsToDeduct));
+      formData.append('orderIds', orderIds.join(','));
+      formData.append('materialsData', JSON.stringify(materials));
       
       const response = await fetch('?/assignOrders', {
         method: 'POST',
@@ -436,7 +439,19 @@
       
       if (result.type === "success") {
         showMaterialsConfirmation = false;
-        handleAssignmentSuccess();
+        
+        // If we did a partial assignment, remove the assigned orders from selection
+        if (orderIds.length < selectedOrders.length) {
+          selectedOrders = selectedOrders.filter(id => !orderIds.includes(id));
+          // If no orders remain selected, reset the selection state
+          if (selectedOrders.length === 0) {
+            handleAssignmentSuccess();
+          }
+        } else {
+          // Full assignment - clear all selections
+          handleAssignmentSuccess();
+        }
+        
         reloadWithTab("in_progress");
       } else {
         alert(result.error || "Failed to assign orders");
